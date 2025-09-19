@@ -57,7 +57,8 @@ export default function ContractorJobs() {
       const response = await fetch("/api/work-orders")
       if (response.ok) {
         const data = await response.json()
-        setJobs(data.workOrders)
+        // The API returns work orders directly, not wrapped in a workOrders property
+        setJobs(data || [])
       }
     } catch (error) {
       console.error("Error fetching jobs:", error)
@@ -258,14 +259,14 @@ export default function ContractorJobs() {
                         )}
                         
                         <Link
-                          href={`/dashboard/contractor/jobs/${job.id}`}
+                          href={`/dashboard/contractor/work-orders/${job.id}`}
                           className="text-blue-600 hover:text-blue-500 p-2"
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
                         <Link
-                          href={`/dashboard/contractor/jobs/${job.id}/messages`}
+                          href={`/dashboard/contractor/work-orders/${job.id}?tab=messages`}
                           className="text-green-600 hover:text-green-500 p-2"
                           title="Messages"
                         >

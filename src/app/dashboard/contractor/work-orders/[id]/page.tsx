@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { 
   ArrowLeft,
@@ -99,6 +99,7 @@ export default function ContractorWorkOrderDetails() {
   const { data: session } = useSession()
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const workOrderId = params.id as string
 
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null)
@@ -142,6 +143,14 @@ export default function ContractorWorkOrderDetails() {
       fetchFiles()
     }
   }, [session, workOrderId])
+
+  // Handle tab parameter from URL
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['details', 'tasks', 'messages', 'files'].includes(tab)) {
+      setActiveTab(tab as "details" | "tasks" | "messages" | "files")
+    }
+  }, [searchParams])
 
   const fetchWorkOrder = async () => {
     try {

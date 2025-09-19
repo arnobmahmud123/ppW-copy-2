@@ -19,7 +19,13 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  MoreVertical
+  MoreVertical,
+  ChevronDown,
+  Image,
+  Clipboard,
+  ChevronLeft,
+  ChevronRight,
+  Settings
 } from "lucide-react"
 
 interface WorkOrder {
@@ -33,6 +39,8 @@ interface WorkOrder {
   postalCode: string
   dueDate: string
   createdAt: string
+  fieldComplete?: string
+  workOrderNumber?: string
   client: {
     name: string
     company?: string
@@ -47,18 +55,39 @@ interface WorkOrder {
   }
 }
 
+interface ColumnFilter {
+  [key: string]: string
+}
+
+interface StatusFilters {
+  unassigned: boolean
+  assigned: boolean
+  fieldComplete: boolean
+  officeApproved: boolean
+  sentToClient: boolean
+  closed: boolean
+  cancelled: boolean
+}
+
 export default function AdminWorkOrders() {
   const { data: session } = useSession()
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [filters, setFilters] = useState({
-    status: "ALL",
-    serviceType: "ALL",
-    state: "ALL",
-    contractor: "ALL"
+  const [columnFilters, setColumnFilters] = useState<ColumnFilter>({})
+  const [statusFilters, setStatusFilters] = useState<StatusFilters>({
+    unassigned: true,
+    assigned: true,
+    fieldComplete: true,
+    officeApproved: true,
+    sentToClient: false,
+    closed: false,
+    cancelled: false
   })
   const [showImportModal, setShowImportModal] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(200)
+  const [showFilterPanel, setShowFilterPanel] = useState(false)
 
   useEffect(() => {
     fetchWorkOrders()
@@ -81,6 +110,7 @@ export default function AdminWorkOrders() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "COMPLETED":
+      case "CLOSED":
         return "bg-green-100 text-green-800"
       case "IN_PROGRESS":
         return "bg-blue-100 text-blue-800"
@@ -88,6 +118,12 @@ export default function AdminWorkOrders() {
         return "bg-yellow-100 text-yellow-800"
       case "NEW":
         return "bg-gray-100 text-gray-800"
+      case "QC":
+        return "bg-purple-100 text-purple-800"
+      case "BILLING":
+        return "bg-orange-100 text-orange-800"
+      case "REJECTED":
+        return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -96,6 +132,7 @@ export default function AdminWorkOrders() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "COMPLETED":
+      case "CLOSED":
         return CheckCircle
       case "IN_PROGRESS":
         return Clock
@@ -104,24 +141,124 @@ export default function AdminWorkOrders() {
     }
   }
 
+  const getStatusDisplayName = (status: string) => {
+    switch (status) {
+      case "NEW":
+        return "Unassigned"
+      case "ASSIGNED":
+        return "Assigned"
+      case "IN_PROGRESS":
+        return "Field Complete"
+      case "QC":
+        return "Office Approved"
+      case "BILLING":
+        return "Sent to Client"
+      case "CLOSED":
+        return "Closed"
+      case "REJECTED":
+        return "Cancelled"
+      default:
+        return status.replace("_", " ")
+    }
+  }
+
+  const updateColumnFilter = (column: string, value: string) => {
+    setColumnFilters(prev => ({
+      ...prev,
+      [column]: value
+    }))
+  }
+
+  const updateStatusFilter = (status: keyof StatusFilters, checked: boolean) => {
+    setStatusFilters(prev => ({
+      ...prev,
+      [status]: checked
+    }))
+  }
+
+  const runFilter = () => {
+    // This would typically trigger a server-side filter
+    console.log("Running filter with:", { columnFilters, statusFilters })
+  }
+
+  const resetFilter = () => {
+    setColumnFilters({})
+    setStatusFilters({
+      unassigned: true,
+      assigned: true,
+      fieldComplete: true,
+      officeApproved: true,
+      sentToClient: false,
+      closed: false,
+      cancelled: false
+    })
+  }
+
+  const copyWorkOrderInfo = (order: WorkOrder) => {
+    const workOrderInfo = `Work Order: ${order.workOrderNumber || order.id}
+Title: ${order.title}
+Address: ${order.addressLine1}, ${order.city}, ${order.state} ${order.postalCode}
+Client: ${order.client.name}
+Contractor: ${order.assignedContractor?.name || 'Unassigned'}
+Status: ${getStatusDisplayName(order.status)}
+Due Date: ${new Date(order.dueDate).toLocaleDateString()}
+Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDateString() : 'N/A'}`
+
+    navigator.clipboard.writeText(workOrderInfo).then(() => {
+      // You could add a toast notification here
+      console.log('Work order info copied to clipboard')
+    }).catch(err => {
+      console.error('Failed to copy work order info:', err)
+    })
+  }
+
   const filteredWorkOrders = (workOrders || []).filter(order => {
-    const matchesSearch = 
-      order.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.addressLine1.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.postalCode.includes(searchTerm) ||
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.assignedContractor?.name.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-    
-    const matchesFilters = 
-      (filters.status === "ALL" || order.status === filters.status) &&
-      (filters.serviceType === "ALL" || order.serviceType === filters.serviceType) &&
-      (filters.state === "ALL" || order.state === filters.state) &&
-      (filters.contractor === "ALL" || order.assignedContractor?.name === filters.contractor)
-    
-    return matchesSearch && matchesFilters
+    // Status filtering
+    const statusDisplayName = getStatusDisplayName(order.status).toLowerCase()
+    const statusMatches = 
+      (statusDisplayName === "unassigned" && statusFilters.unassigned) ||
+      (statusDisplayName === "assigned" && statusFilters.assigned) ||
+      (statusDisplayName === "field complete" && statusFilters.fieldComplete) ||
+      (statusDisplayName === "office approved" && statusFilters.officeApproved) ||
+      (statusDisplayName === "sent to client" && statusFilters.sentToClient) ||
+      (statusDisplayName === "closed" && statusFilters.closed) ||
+      (statusDisplayName === "cancelled" && statusFilters.cancelled)
+
+    // Column filtering
+    const columnMatches = Object.entries(columnFilters).every(([column, filterValue]) => {
+      if (!filterValue) return true
+      
+      switch (column) {
+        case "workOrderNumber":
+          return order.workOrderNumber?.toLowerCase().includes(filterValue.toLowerCase()) || 
+                 order.id.toLowerCase().includes(filterValue.toLowerCase())
+        case "address":
+          return order.addressLine1.toLowerCase().includes(filterValue.toLowerCase())
+        case "state":
+          return order.state.toLowerCase().includes(filterValue.toLowerCase())
+        case "city":
+          return order.city.toLowerCase().includes(filterValue.toLowerCase())
+        case "client":
+          return order.client.name.toLowerCase().includes(filterValue.toLowerCase())
+        case "contractor":
+          return order.assignedContractor?.name.toLowerCase().includes(filterValue.toLowerCase()) || false
+        case "dueDate":
+          return new Date(order.dueDate).toLocaleDateString().includes(filterValue)
+        case "fieldComplete":
+          return order.fieldComplete ? new Date(order.fieldComplete).toLocaleDateString().includes(filterValue) : false
+        default:
+          return true
+      }
+    })
+
+    return statusMatches && columnMatches
   })
+
+  // Pagination
+  const totalPages = Math.ceil(filteredWorkOrders.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedWorkOrders = filteredWorkOrders.slice(startIndex, endIndex)
 
   const handleExport = () => {
     const csvContent = [
@@ -160,234 +297,448 @@ export default function AdminWorkOrders() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            All Work Orders
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage and oversee all property preservation work orders
-          </p>
-        </div>
-        <div className="mt-4 flex space-x-3 md:mt-0 md:ml-4">
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </button>
-          <button
-            onClick={handleExport}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </button>
-          <Link
-            href="/work-orders/submit"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Work Order
-          </Link>
+      <div className="bg-gray-800 text-white px-6 py-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">View Work Order</h1>
+          <a href="#" className="text-blue-300 hover:text-blue-200">Need Help?</a>
         </div>
       </div>
 
-      {/* Advanced Search and Filters */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Search & Filters</h3>
-        
-        {/* Search Bar */}
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b">
+        <div className="px-6">
+          <nav className="flex space-x-8">
+            <button className="py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+              All Work Order
+            </button>
+            <button className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+              WO Completion Tracker
+            </button>
+            <button className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+              New Contractor Tracker
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Action and Filter Panel */}
+      <div className="bg-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-4">
+            <button className="text-sm text-gray-600 hover:text-gray-800">Action</button>
+            <button className="text-sm text-gray-600 hover:text-gray-800">Create Filters</button>
+            <button className="text-sm text-gray-600 hover:text-gray-800">Load Filters</button>
+            <div className="flex items-center space-x-2">
+              <button className="text-sm text-gray-600 hover:text-gray-800">Columns</button>
+              <span className="text-sm text-green-600">No Filter Applied...</span>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={runFilter}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+            >
+              Run Filter
+            </button>
+            <button
+              onClick={resetFilter}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+            >
+              Reset Filter
+            </button>
+          </div>
+        </div>
+
+        {/* Status Checkboxes */}
+        <div className="flex items-center space-x-6">
+          <label className="flex items-center">
             <input
-              type="text"
-              placeholder="Search by work order ID, title, address, city, ZIP, client, or contractor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              type="checkbox"
+              checked={statusFilters.unassigned}
+              onChange={(e) => updateStatusFilter("unassigned", e.target.checked)}
+              className="mr-2"
             />
-          </div>
-        </div>
-
-        {/* Filter Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="ALL">All Status</option>
-              <option value="NEW">New</option>
-              <option value="ASSIGNED">Assigned</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="QC">Quality Control</option>
-              <option value="BILLING">Billing</option>
-              <option value="CLOSED">Closed</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
-            <select
-              value={filters.serviceType}
-              onChange={(e) => setFilters(prev => ({ ...prev, serviceType: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="ALL">All Services</option>
-              <option value="GRASS_CUT">Grass Cutting</option>
-              <option value="DEBRIS_REMOVAL">Debris Removal</option>
-              <option value="WINTERIZATION">Winterization</option>
-              <option value="BOARD_UP">Board Up</option>
-              <option value="INSPECTION">Inspection</option>
-              <option value="MOLD_REMEDIATION">Mold Remediation</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-            <select
-              value={filters.state}
-              onChange={(e) => setFilters(prev => ({ ...prev, state: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="ALL">All States</option>
-              <option value="MO">Missouri</option>
-              <option value="AR">Arkansas</option>
-              <option value="AK">Alaska</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contractor</label>
-            <select
-              value={filters.contractor}
-              onChange={(e) => setFilters(prev => ({ ...prev, contractor: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="ALL">All Contractors</option>
-              <option value="Unassigned">Unassigned</option>
-              {/* Contractors would be populated from API */}
-            </select>
-          </div>
-        </div>
-
-        {/* Results Count */}
-        <div className="mt-4 text-sm text-gray-600">
-          Showing {filteredWorkOrders.length} of {workOrders?.length || 0} work orders
+            <span className="text-sm text-gray-700">Unassigned</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={statusFilters.assigned}
+              onChange={(e) => updateStatusFilter("assigned", e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">Assigned</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={statusFilters.fieldComplete}
+              onChange={(e) => updateStatusFilter("fieldComplete", e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">Field Complete</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={statusFilters.officeApproved}
+              onChange={(e) => updateStatusFilter("officeApproved", e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">Office Approved</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={statusFilters.sentToClient}
+              onChange={(e) => updateStatusFilter("sentToClient", e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">Sent to Client</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={statusFilters.closed}
+              onChange={(e) => updateStatusFilter("closed", e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">Closed</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={statusFilters.cancelled}
+              onChange={(e) => updateStatusFilter("cancelled", e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">Cancelled</span>
+          </label>
         </div>
       </div>
 
-      {/* Work Orders Table */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">
-            Work Orders
-          </h3>
-        </div>
-        
+      {/* Data Table with Column Filters */}
+      <div className="bg-white">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full">
+            {/* Column Headers with Filters */}
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Work Order
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Action
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Service Type
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  IPL #
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Work Order #
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Address
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Photos
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contractor
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  History
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  State
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  City
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Field Comp...
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Client
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contractor
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Due Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  History
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  State
                 </th>
               </tr>
             </thead>
+            
+            {/* Filter Row */}
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2">
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" className="rounded" />
+                    <Eye className="h-4 w-4 text-gray-400" title="View Work Order Details" />
+                    <Clipboard className="h-4 w-4 text-gray-400" title="Copy Work Order Info" />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.workOrderNumber || ""}
+                      onChange={(e) => updateColumnFilter("workOrderNumber", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="8337511"
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.address || ""}
+                      onChange={(e) => updateColumnFilter("address", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.state || ""}
+                      onChange={(e) => updateColumnFilter("state", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.city || ""}
+                      onChange={(e) => updateColumnFilter("city", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <Calendar className="h-4 w-4 text-gray-400 ml-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.fieldComplete || ""}
+                      onChange={(e) => updateColumnFilter("fieldComplete", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Yont..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.client || ""}
+                      onChange={(e) => updateColumnFilter("client", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.contractor || ""}
+                      onChange={(e) => updateColumnFilter("contractor", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <Calendar className="h-4 w-4 text-gray-400 ml-1" />
+                    <input
+                      type="text"
+                      value={columnFilters.dueDate || ""}
+                      onChange={(e) => updateColumnFilter("dueDate", e.target.value)}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Yont..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 text-gray-400 mr-1" />
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Filter..."
+                    />
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            
+            {/* Data Rows */}
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredWorkOrders.map((order) => {
+              {paginatedWorkOrders.map((order) => {
                 const StatusIcon = getStatusIcon(order.status)
+                const statusDisplayName = getStatusDisplayName(order.status)
                 return (
                   <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <StatusIcon className="h-5 w-5 text-gray-400 mr-3" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {order.id}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {order.title}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.serviceType.replace("_", " ")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{order.addressLine1}</div>
-                      <div className="text-sm text-gray-500">{order.city}, {order.state} {order.postalCode}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{order.client.name}</div>
-                      {order.client.company && (
-                        <div className="text-sm text-gray-500">{order.client.company}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.assignedContractor?.name || "Unassigned"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(order.dueDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
+                        <input type="checkbox" className="rounded" />
                         <Link
                           href={`/dashboard/admin/work-orders/${order.id}`}
-                          className="text-blue-600 hover:text-blue-500"
-                          title="View Details"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-400 hover:text-blue-500 transition-colors"
+                          title="View Work Order Details"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 cursor-pointer" />
                         </Link>
                         <button
-                          className="text-green-600 hover:text-green-500"
-                          title="Edit"
+                          onClick={() => copyWorkOrderInfo(order)}
+                          className="text-gray-400 hover:text-blue-500 transition-colors"
+                          title="Copy Work Order Info"
                         >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="text-red-600 hover:text-red-500"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          <Clipboard className="h-4 w-4 cursor-pointer" />
                         </button>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.id.slice(-7)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.workOrderNumber || order.id}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 text-gray-400 mr-1" />
+                        {order.addressLine1}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <Image className="h-4 w-4 text-gray-400 mr-1" />
+                        {order._count.files}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 text-gray-400 mr-1" />
+                        {order._count.messages}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {statusDisplayName}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.state}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.city}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.fieldComplete ? new Date(order.fieldComplete).toLocaleDateString() : ""}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.client.name}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.assignedContractor ? (
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 text-gray-400 mr-1" />
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                            {order.assignedContractor.name}
+                          </span>
+                        </div>
+                      ) : (
+                        "Unassigned"
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
+                        {new Date(order.dueDate).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 text-gray-400 mr-1" />
+                        {order._count.messages}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {order.state}
                     </td>
                   </tr>
                 )
@@ -396,27 +747,52 @@ export default function AdminWorkOrders() {
           </table>
         </div>
         
+        {/* Pagination */}
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="flex items-center">
+            <span className="text-sm text-gray-700">
+              Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
+              <span className="font-medium">{Math.min(endIndex, filteredWorkOrders.length)}</span> of{" "}
+              <span className="font-medium">{filteredWorkOrders.length}</span> results
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+              {currentPage}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="ml-4 px-3 py-1 border border-gray-300 rounded text-sm"
+            >
+              <option value={50}>50 items per page</option>
+              <option value={100}>100 items per page</option>
+              <option value={200}>200 items per page</option>
+            </select>
+          </div>
+        </div>
+        
         {filteredWorkOrders.length === 0 && (
           <div className="text-center py-12">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No work orders found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm || Object.values(filters).some(f => f !== "ALL")
-                ? "Try adjusting your search or filter criteria."
-                : "Get started by creating a new work order."
-              }
+              Try adjusting your filter criteria or create a new work order.
             </p>
-            {!searchTerm && Object.values(filters).every(f => f === "ALL") && (
-              <div className="mt-6">
-                <Link
-                  href="/work-orders/submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Work Order
-                </Link>
-              </div>
-            )}
           </div>
         )}
       </div>

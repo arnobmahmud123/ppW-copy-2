@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       estCompletion: validatedData.estCompletion ? new Date(validatedData.estCompletion) : null,
       clientId: session.user.id,
       creatorId: session.user.id,
-      status: "NEW",
+        status: "UNASSIGNED",
     })
 
     const workOrder = await prisma.workOrder.create({
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         assignedProcessorId: validatedData.assignedProcessorId,
         clientId: session.user.id,
         creatorId: session.user.id,
-        status: "NEW",
+        status: "UNASSIGNED",
       },
     })
 

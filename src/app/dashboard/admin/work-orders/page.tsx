@@ -62,6 +62,7 @@ interface ColumnFilter {
 interface StatusFilters {
   unassigned: boolean
   assigned: boolean
+  read: boolean
   fieldComplete: boolean
   officeApproved: boolean
   sentToClient: boolean
@@ -78,6 +79,7 @@ export default function AdminWorkOrders() {
   const [statusFilters, setStatusFilters] = useState<StatusFilters>({
     unassigned: true,
     assigned: true,
+    read: true,
     fieldComplete: true,
     officeApproved: true,
     sentToClient: false,
@@ -109,20 +111,21 @@ export default function AdminWorkOrders() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "COMPLETED":
+      case "UNASSIGNED":
+        return "bg-gray-100 text-gray-800"
+      case "ASSIGNED":
+        return "bg-blue-100 text-blue-800"
+      case "READ":
+        return "bg-indigo-100 text-indigo-800"
+      case "FIELD_COMPLETE":
+        return "bg-yellow-100 text-yellow-800"
+      case "OFFICE_APPROVED":
+        return "bg-purple-100 text-purple-800"
+      case "SENT_TO_CLIENT":
+        return "bg-orange-100 text-orange-800"
       case "CLOSED":
         return "bg-green-100 text-green-800"
-      case "IN_PROGRESS":
-        return "bg-blue-100 text-blue-800"
-      case "ASSIGNED":
-        return "bg-yellow-100 text-yellow-800"
-      case "NEW":
-        return "bg-gray-100 text-gray-800"
-      case "QC":
-        return "bg-purple-100 text-purple-800"
-      case "BILLING":
-        return "bg-orange-100 text-orange-800"
-      case "REJECTED":
+      case "CANCELLED":
         return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
@@ -131,11 +134,22 @@ export default function AdminWorkOrders() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "COMPLETED":
+      case "UNASSIGNED":
+        return AlertCircle
+      case "ASSIGNED":
+        return User
+      case "READ":
+        return Eye
+      case "FIELD_COMPLETE":
+        return CheckCircle
+      case "OFFICE_APPROVED":
+        return CheckCircle
+      case "SENT_TO_CLIENT":
+        return Send
       case "CLOSED":
         return CheckCircle
-      case "IN_PROGRESS":
-        return Clock
+      case "CANCELLED":
+        return X
       default:
         return AlertCircle
     }
@@ -143,19 +157,21 @@ export default function AdminWorkOrders() {
 
   const getStatusDisplayName = (status: string) => {
     switch (status) {
-      case "NEW":
+      case "UNASSIGNED":
         return "Unassigned"
       case "ASSIGNED":
         return "Assigned"
-      case "IN_PROGRESS":
+      case "READ":
+        return "Read"
+      case "FIELD_COMPLETE":
         return "Field Complete"
-      case "QC":
+      case "OFFICE_APPROVED":
         return "Office Approved"
-      case "BILLING":
+      case "SENT_TO_CLIENT":
         return "Sent to Client"
       case "CLOSED":
         return "Closed"
-      case "REJECTED":
+      case "CANCELLED":
         return "Cancelled"
       default:
         return status.replace("_", " ")
@@ -186,6 +202,7 @@ export default function AdminWorkOrders() {
     setStatusFilters({
       unassigned: true,
       assigned: true,
+      read: true,
       fieldComplete: true,
       officeApproved: true,
       sentToClient: false,
@@ -218,6 +235,7 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
     const statusMatches = 
       (statusDisplayName === "unassigned" && statusFilters.unassigned) ||
       (statusDisplayName === "assigned" && statusFilters.assigned) ||
+      (statusDisplayName === "read" && statusFilters.read) ||
       (statusDisplayName === "field complete" && statusFilters.fieldComplete) ||
       (statusDisplayName === "office approved" && statusFilters.officeApproved) ||
       (statusDisplayName === "sent to client" && statusFilters.sentToClient) ||
@@ -370,6 +388,15 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
               className="mr-2"
             />
             <span className="text-sm text-gray-700">Assigned</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={statusFilters.read}
+              onChange={(e) => updateStatusFilter("read", e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">Read</span>
           </label>
           <label className="flex items-center">
             <input

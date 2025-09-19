@@ -477,14 +477,22 @@ export default function ContractorWorkOrderDetails() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return "bg-green-100 text-green-800"
-      case "IN_PROGRESS":
-        return "bg-blue-100 text-blue-800"
-      case "ASSIGNED":
-        return "bg-yellow-100 text-yellow-800"
-      case "NEW":
+      case "UNASSIGNED":
         return "bg-gray-100 text-gray-800"
+      case "ASSIGNED":
+        return "bg-blue-100 text-blue-800"
+      case "READ":
+        return "bg-indigo-100 text-indigo-800"
+      case "FIELD_COMPLETE":
+        return "bg-yellow-100 text-yellow-800"
+      case "OFFICE_APPROVED":
+        return "bg-purple-100 text-purple-800"
+      case "SENT_TO_CLIENT":
+        return "bg-orange-100 text-orange-800"
+      case "CLOSED":
+        return "bg-green-100 text-green-800"
+      case "CANCELLED":
+        return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -505,10 +513,22 @@ export default function ContractorWorkOrderDetails() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "COMPLETED":
+      case "UNASSIGNED":
+        return AlertCircle
+      case "ASSIGNED":
+        return User
+      case "READ":
+        return Eye
+      case "FIELD_COMPLETE":
         return CheckCircle
-      case "IN_PROGRESS":
-        return Clock
+      case "OFFICE_APPROVED":
+        return CheckCircle
+      case "SENT_TO_CLIENT":
+        return Send
+      case "CLOSED":
+        return CheckCircle
+      case "CANCELLED":
+        return X
       default:
         return AlertCircle
     }

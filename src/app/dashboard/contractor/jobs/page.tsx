@@ -18,7 +18,9 @@ import {
   Eye,
   Play,
   Pause,
-  MoreVertical
+  MoreVertical,
+  Send,
+  X
 } from "lucide-react"
 
 interface Job {
@@ -69,14 +71,22 @@ export default function ContractorJobs() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return "bg-green-100 text-green-800"
-      case "IN_PROGRESS":
-        return "bg-blue-100 text-blue-800"
-      case "ASSIGNED":
-        return "bg-yellow-100 text-yellow-800"
-      case "NEW":
+      case "UNASSIGNED":
         return "bg-gray-100 text-gray-800"
+      case "ASSIGNED":
+        return "bg-blue-100 text-blue-800"
+      case "READ":
+        return "bg-indigo-100 text-indigo-800"
+      case "FIELD_COMPLETE":
+        return "bg-yellow-100 text-yellow-800"
+      case "OFFICE_APPROVED":
+        return "bg-purple-100 text-purple-800"
+      case "SENT_TO_CLIENT":
+        return "bg-orange-100 text-orange-800"
+      case "CLOSED":
+        return "bg-green-100 text-green-800"
+      case "CANCELLED":
+        return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -84,12 +94,22 @@ export default function ContractorJobs() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return CheckCircle
-      case "IN_PROGRESS":
-        return Play
+      case "UNASSIGNED":
+        return AlertCircle
       case "ASSIGNED":
-        return Clock
+        return User
+      case "READ":
+        return Eye
+      case "FIELD_COMPLETE":
+        return CheckCircle
+      case "OFFICE_APPROVED":
+        return CheckCircle
+      case "SENT_TO_CLIENT":
+        return Send
+      case "CLOSED":
+        return CheckCircle
+      case "CANCELLED":
+        return X
       default:
         return AlertCircle
     }
@@ -179,9 +199,14 @@ export default function ContractorJobs() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="ALL">All Status</option>
+              <option value="UNASSIGNED">Unassigned</option>
               <option value="ASSIGNED">Assigned</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
+              <option value="READ">Read</option>
+              <option value="FIELD_COMPLETE">Field Complete</option>
+              <option value="OFFICE_APPROVED">Office Approved</option>
+              <option value="SENT_TO_CLIENT">Sent to Client</option>
+              <option value="CLOSED">Closed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
         </div>
@@ -241,20 +266,20 @@ export default function ContractorJobs() {
                         {/* Status Update Buttons */}
                         {job.status === "ASSIGNED" && (
                           <button
-                            onClick={() => updateJobStatus(job.id, "IN_PROGRESS")}
-                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
+                            onClick={() => updateJobStatus(job.id, "READ")}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
                           >
-                            <Play className="h-3 w-3 mr-1" />
-                            Start
+                            <Eye className="h-3 w-3 mr-1" />
+                            Mark as Read
                           </button>
                         )}
-                        {job.status === "IN_PROGRESS" && (
+                        {job.status === "READ" && (
                           <button
-                            onClick={() => updateJobStatus(job.id, "COMPLETED")}
-                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                            onClick={() => updateJobStatus(job.id, "FIELD_COMPLETE")}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-yellow-600 hover:bg-yellow-700"
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Complete
+                            Field Complete
                           </button>
                         )}
                         
@@ -324,12 +349,12 @@ export default function ContractorJobs() {
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Play className="h-6 w-6 text-blue-400" />
+              <Eye className="h-6 w-6 text-indigo-400" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">In Progress</p>
+              <p className="text-sm font-medium text-gray-500">Read</p>
               <p className="text-lg font-semibold text-gray-900">
-                {jobs.filter(job => job.status === "IN_PROGRESS").length}
+                {jobs.filter(job => job.status === "READ").length}
               </p>
             </div>
           </div>
@@ -338,12 +363,12 @@ export default function ContractorJobs() {
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <CheckCircle className="h-6 w-6 text-green-400" />
+              <CheckCircle className="h-6 w-6 text-yellow-400" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Completed</p>
+              <p className="text-sm font-medium text-gray-500">Field Complete</p>
               <p className="text-lg font-semibold text-gray-900">
-                {jobs.filter(job => job.status === "COMPLETED").length}
+                {jobs.filter(job => job.status === "FIELD_COMPLETE").length}
               </p>
             </div>
           </div>

@@ -44,7 +44,7 @@ model WorkOrder {
   state          String
   postalCode     String
   serviceType    ServiceType
-  status         WorkOrderStatus  @default(NEW)
+  status         WorkOrderStatus  @default(UNASSIGNED)
   dueDate        DateTime?
   tasks          String?          // JSON string to store task data
   
@@ -188,14 +188,14 @@ enum ServiceType {
 
 /// Work order status lifecycle
 enum WorkOrderStatus {
-  NEW
+  UNASSIGNED
   ASSIGNED
-  IN_PROGRESS
-  COMPLETED
-  QC
-  BILLING
+  READ
+  FIELD_COMPLETE
+  OFFICE_APPROVED
+  SENT_TO_CLIENT
   CLOSED
-  REJECTED
+  CANCELLED
 }
 
 /// Attachment categories to support photo buckets and documents

@@ -24,7 +24,12 @@ import {
   Copy,
   ChevronUp,
   ChevronDown,
-  X
+  X,
+  Printer,
+  DollarSign,
+  History,
+  Eye,
+  ChevronDown as ChevronDownIcon
 } from "lucide-react"
 
 interface WorkOrder {
@@ -134,6 +139,8 @@ export default function ContractorWorkOrderDetails() {
   const [uploadingFile, setUploadingFile] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>("PHOTO_BEFORE")
   const [showImageModal, setShowImageModal] = useState<{url: string, title: string} | null>(null)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   useEffect(() => {
     if (session?.user?.role === "CONTRACTOR" && workOrderId) {
@@ -151,6 +158,23 @@ export default function ContractorWorkOrderDetails() {
       setActiveTab(tab as "details" | "tasks" | "messages" | "files")
     }
   }, [searchParams])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showStatusDropdown) {
+        const target = event.target as Element
+        if (!target.closest('.status-dropdown')) {
+          setShowStatusDropdown(false)
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showStatusDropdown])
 
   const fetchWorkOrder = async () => {
     try {
@@ -450,6 +474,79 @@ export default function ContractorWorkOrderDetails() {
     }
   }
 
+  const updateWorkOrderStatus = async (newStatus: string) => {
+    if (!workOrder) return
+
+    try {
+      setUpdatingStatus(true)
+      const response = await fetch(`/api/work-orders/${workOrderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (response.ok) {
+        await fetchWorkOrder() // Refresh work order data
+        setShowStatusDropdown(false)
+      } else {
+        console.error("Failed to update status")
+        alert("Failed to update status. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error updating status:", error)
+      alert("Error updating status. Please try again.")
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
+
+  const copyWorkOrderInfo = () => {
+    if (!workOrder) return
+
+    const workOrderInfo = `Work Order: ${workOrder.workOrderNumber || workOrder.id}
+Title: ${workOrder.title}
+Address: ${workOrder.addressLine1}, ${workOrder.city}, ${workOrder.state} ${workOrder.postalCode}
+Client: ${workOrder.client.name}
+Status: ${getStatusDisplayName(workOrder.status)}
+Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString() : 'N/A'}`
+
+    navigator.clipboard.writeText(workOrderInfo).then(() => {
+      alert("Work order information copied to clipboard!")
+    }).catch(err => {
+      console.error('Failed to copy work order info:', err)
+      alert("Failed to copy work order information.")
+    })
+  }
+
+  const printWorkOrder = () => {
+    window.print()
+  }
+
+  const getStatusDisplayName = (status: string) => {
+    switch (status) {
+      case "UNASSIGNED":
+        return "Unassigned"
+      case "ASSIGNED":
+        return "Assigned"
+      case "READ":
+        return "Read"
+      case "FIELD_COMPLETE":
+        return "Field Complete"
+      case "OFFICE_APPROVED":
+        return "Office Approved"
+      case "SENT_TO_CLIENT":
+        return "Sent to Client"
+      case "CLOSED":
+        return "Closed"
+      case "CANCELLED":
+        return "Cancelled"
+      default:
+        return status.replace("_", " ")
+    }
+  }
+
   const getCategoryDisplayName = (category: string) => {
     switch (category) {
       case "PHOTO_BEFORE":
@@ -581,19 +678,117 @@ export default function ContractorWorkOrderDetails() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="bg-gray-800 text-white px-6 py-4 mb-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
+              {/* Status Dropdown */}
+              <div className="relative status-dropdown">
+                <button
+                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  disabled={updatingStatus}
+                  className="flex items-center space-x-2 bg-white text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="font-medium">{getStatusDisplayName(workOrder.status)}</span>
+                  <ChevronDownIcon className="h-4 w-4" />
+                </button>
+                
+                {showStatusDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border">
+                    <div className="py-1">
+                      {["UNASSIGNED", "ASSIGNED", "READ", "FIELD_COMPLETE", "OFFICE_APPROVED", "SENT_TO_CLIENT", "CLOSED", "CANCELLED"].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => updateWorkOrderStatus(status)}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                            workOrder.status === status ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                          }`}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          <span>{getStatusDisplayName(status)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={copyWorkOrderInfo}
+                  className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors"
+                >
+                  <Copy className="h-4 w-4" />
+                  <span>Copy</span>
+                </button>
+                
+                <button
+                  onClick={printWorkOrder}
+                  className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Print</span>
+                </button>
+                
+                <button className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors">
+                  <Edit className="h-4 w-4" />
+                  <span>Edit</span>
+                </button>
+                
+                <button className="flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md transition-colors">
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete</span>
+                </button>
+                
+                <button className="flex items-center space-x-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md transition-colors">
+                  <DollarSign className="h-4 w-4" />
+                  <span>Bid/Invoice</span>
+                </button>
+                
+                <button className="flex items-center space-x-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md transition-colors">
+                  <Plus className="h-4 w-4" />
+                  <span>Create Bid</span>
+                </button>
+                
+                <button className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors">
+                  <History className="h-4 w-4" />
+                  <span>Property History</span>
+                </button>
+                
+                <button className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors">
+                  <MapPin className="h-4 w-4" />
+                  <span>Map</span>
+                </button>
+                
+                <button 
+                  onClick={() => setActiveTab("messages")}
+                  className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Message</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
               <Link
                 href="/dashboard/contractor"
-                className="mr-4 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-blue-300 hover:text-blue-200 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{workOrder.title}</h1>
-                <p className="text-sm text-gray-500">Work Order #{workOrder.workOrderNumber || workOrder.id.slice(-8)}</p>
-              </div>
+              <a href="#" className="text-blue-300 hover:text-blue-200">Need Help?</a>
+            </div>
+          </div>
+        </div>
+
+        {/* Work Order Info Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{workOrder.title}</h1>
+              <p className="text-sm text-gray-500">Work Order #{workOrder.workOrderNumber || workOrder.id.slice(-8)}</p>
             </div>
             <div className="flex items-center space-x-3">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(workOrder.priority || 'MEDIUM')}`}>
@@ -601,7 +796,7 @@ export default function ContractorWorkOrderDetails() {
               </span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(workOrder.status)}`}>
                 <StatusIcon className="h-3 w-3 mr-1" />
-                {workOrder.status.replace("_", " ")}
+                {getStatusDisplayName(workOrder.status)}
               </span>
             </div>
           </div>

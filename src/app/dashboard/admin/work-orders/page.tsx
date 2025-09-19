@@ -25,7 +25,9 @@ import {
   Clipboard,
   ChevronLeft,
   ChevronRight,
-  Settings
+  Settings,
+  Send,
+  X
 } from "lucide-react"
 
 interface WorkOrder {

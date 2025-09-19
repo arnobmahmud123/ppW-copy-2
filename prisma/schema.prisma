@@ -1,0 +1,228 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// User accounts for clients, contractors, and admins
+model User {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  hashedPassword String
+  name           String
+  role           Role
+  phone          String?
+  company        String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relations
+  workOrdersAsClient  WorkOrder[] @relation("ClientWorkOrders")
+  workOrdersCreated  WorkOrder[] @relation("CreatorWorkOrders")
+  workOrdersAssigned WorkOrder[] @relation("AssignedContractorWorkOrders")
+  workOrdersAsCoordinator WorkOrder[] @relation("AssignedCoordinatorWorkOrders")
+  workOrdersAsProcessor WorkOrder[] @relation("AssignedProcessorWorkOrders")
+  messages           Message[]
+  invoices           Invoice[]    @relation("ClientInvoices")
+}
+
+/// Work orders submitted by clients and fulfilled by contractors
+model WorkOrder {
+  id             String           @id @default(cuid())
+  title          String
+  description    String
+  addressLine1   String
+  addressLine2   String?
+  city           String
+  state          String
+  postalCode     String
+  serviceType    ServiceType
+  status         WorkOrderStatus  @default(NEW)
+  dueDate        DateTime?
+  tasks          String?          // JSON string to store task data
+  
+  // New fields for enhanced work order management
+  workOrderNumber String?         // Manual work order number
+  coordinator     String?         // Coordinator name
+  processor       String?         // Processor name
+  gpsLat          Float?          // GPS Latitude
+  gpsLon          Float?          // GPS Longitude
+  lockCode        String?         // Lock code
+  lockLocation    String?         // Lock location
+  keyCode         String?         // Key code
+  gateCode        String?         // Gate code
+  lotSize         String?         // Lot size
+  assignedDate    DateTime?       // Dynamic assigned date
+  startDate       DateTime?       // Manual start date
+  estCompletion   DateTime?       // Manual estimated completion
+  fieldComplete   DateTime?       // Dynamic field complete date
+  
+  // Manual contractor information (for initial entry)
+  contractorName  String?         // Manual contractor name
+  contractorEmail String?         // Manual contractor email
+  contractorPhone String?         // Manual contractor phone
+  
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Foreign keys
+  clientId       String
+  client         User             @relation("ClientWorkOrders", fields: [clientId], references: [id])
+
+  creatorId      String
+  creator        User             @relation("CreatorWorkOrders", fields: [creatorId], references: [id])
+
+  assignedContractorId String?
+  assignedContractor   User?      @relation("AssignedContractorWorkOrders", fields: [assignedContractorId], references: [id])
+  
+  assignedCoordinatorId String?
+  assignedCoordinator   User?      @relation("AssignedCoordinatorWorkOrders", fields: [assignedCoordinatorId], references: [id])
+  
+  assignedProcessorId String?
+  assignedProcessor   User?      @relation("AssignedProcessorWorkOrders", fields: [assignedProcessorId], references: [id])
+
+  // Relations
+  messages       Message[]
+  files          FileAttachment[]
+  invoice        Invoice?
+}
+
+/// Messages and comments tied to a work order, task, or bid
+model Message {
+  id          String     @id @default(cuid())
+  content     String
+  createdAt   DateTime   @default(now())
+
+  workOrderId String
+  workOrder   WorkOrder  @relation(fields: [workOrderId], references: [id])
+
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+
+  // Optional task/bid specific messaging
+  taskId      String?    // For task-level messages
+  bidId       String?    // For bid-level messages
+}
+
+/// File and photo attachments associated with work orders
+model FileAttachment {
+  id          String            @id @default(cuid())
+  url         String
+  key         String            @unique
+  mimeType    String
+  category    FileCategory
+  // Optional linkage to task/requirement for restoring thumbnails per bucket
+  taskId       String?
+  requirementId String?
+  createdAt   DateTime          @default(now())
+
+  workOrderId String
+  workOrder   WorkOrder         @relation(fields: [workOrderId], references: [id])
+}
+
+/// Invoices generated after approval/QC
+model Invoice {
+  id            String        @id @default(cuid())
+  workOrderId   String        @unique
+  workOrder     WorkOrder     @relation(fields: [workOrderId], references: [id])
+
+  clientId      String
+  client        User          @relation("ClientInvoices", fields: [clientId], references: [id])
+
+  invoiceNumber String
+  invoiceDate   DateTime
+  status        InvoiceStatus @default(DRAFT)
+  sentToClientDate DateTime?
+  completeDate  DateTime?
+  noCharge      Boolean       @default(false)
+  clientTotal   Float         @default(0)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  items         InvoiceItem[]
+
+  // Optional external references
+  stripeInvoiceId String?
+  stripePaymentId String?
+}
+
+/// Invoice line items
+model InvoiceItem {
+  id              String   @id @default(cuid())
+  invoiceId       String
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  item            String
+  qty             Float
+  price           Float
+  total           Float
+  adjPrice        Float    @default(0)
+  discountPercent Float    @default(0)
+  finalTotal      Float
+  comments        String?
+  flatFee         Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Service types offered
+enum ServiceType {
+  GRASS_CUT
+  DEBRIS_REMOVAL
+  WINTERIZATION
+  BOARD_UP
+  INSPECTION
+  MOLD_REMEDIATION
+  OTHER
+}
+
+/// Work order status lifecycle
+enum WorkOrderStatus {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  QC
+  BILLING
+  CLOSED
+  REJECTED
+}
+
+/// Attachment categories to support photo buckets and documents
+enum FileCategory {
+  PHOTO_BEFORE
+  PHOTO_DURING
+  PHOTO_AFTER
+  PHOTO_BID
+  PHOTO_INSPECTION
+  DOCUMENT_PDF
+  DOCUMENT_PCR
+  OTHER
+}
+
+/// User roles in the system
+enum Role {
+  CLIENT
+  CONTRACTOR
+  COORDINATOR
+  PROCESSOR
+  ADMIN
+}
+
+/// Invoice lifecycle status
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+}

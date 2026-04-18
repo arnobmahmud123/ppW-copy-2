@@ -75,7 +75,7 @@ export async function POST(
     }
 
     const openAiKey = process.env.OPENAI_API_KEY
-    const geminiKey = process.env.GEMINI_API_KEY
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
     if (!openAiKey && !geminiKey) {
       return NextResponse.json({ error: "No AI API key is configured" }, { status: 500 })
     }
@@ -168,13 +168,14 @@ export async function POST(
     let content = ""
 
     if (geminiKey) {
-      const geminiModel = process.env.GEMINI_BID_MODEL || "gemini-1.5-flash"
+      const geminiModel = process.env.GEMINI_BID_MODEL || "gemini-2.5-flash"
       const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-goog-api-key": geminiKey,
           },
           body: JSON.stringify({
             generationConfig: {

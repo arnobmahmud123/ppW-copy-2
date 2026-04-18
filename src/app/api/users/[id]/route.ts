@@ -11,6 +11,7 @@ const userUpdateSchema = z.object({
   role: z.enum(["CLIENT", "CONTRACTOR", "COORDINATOR", "PROCESSOR", "ADMIN"]).optional(),
   phone: z.string().optional(),
   company: z.string().optional(),
+  address: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
 })
 
@@ -20,6 +21,7 @@ const userCreateSchema = z.object({
   role: z.enum(["CLIENT", "CONTRACTOR", "COORDINATOR", "PROCESSOR", "ADMIN"]),
   phone: z.string().optional(),
   company: z.string().optional(),
+  address: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
@@ -49,6 +51,7 @@ export async function GET(
         role: true,
         phone: true,
         company: true,
+        address: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -126,6 +129,9 @@ export async function PUT(
     if (validatedData.company !== undefined) {
       updateData.company = validatedData.company || null
     }
+    if (validatedData.address !== undefined) {
+      updateData.address = validatedData.address || null
+    }
 
     // Only hash password if provided
     if (validatedData.password) {
@@ -142,6 +148,7 @@ export async function PUT(
         role: true,
         phone: true,
         company: true,
+        address: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -200,9 +207,60 @@ export async function DELETE(
       )
     }
 
-    // Delete the user
-    await prisma.user.delete({
-      where: { id }
+    await prisma.$transaction(async (tx) => {
+      if (user.role === "CONTRACTOR") {
+        await tx.workOrder.updateMany({
+          where: { assignedContractorId: id },
+          data: {
+            assignedContractorId: null,
+            contractorName: user.name,
+            contractorEmail: user.email,
+            contractorPhone: user.phone ?? null,
+          },
+        })
+      }
+
+      if (user.role === "COORDINATOR") {
+        await tx.workOrder.updateMany({
+          where: { assignedCoordinatorId: id },
+          data: {
+            assignedCoordinatorId: null,
+            coordinator: user.name,
+          },
+        })
+      }
+
+      if (user.role === "PROCESSOR") {
+        await tx.workOrder.updateMany({
+          where: { assignedProcessorId: id },
+          data: {
+            assignedProcessorId: null,
+            processor: user.name,
+          },
+        })
+      }
+
+      await tx.notification.deleteMany({
+        where: {
+          OR: [{ userId: id }, { message: { authorId: id } }],
+        },
+      })
+
+      await tx.messageRead.deleteMany({
+        where: { userId: id },
+      })
+
+      await tx.messageRead.deleteMany({
+        where: { message: { authorId: id } },
+      })
+
+      await tx.message.deleteMany({
+        where: { authorId: id },
+      })
+
+      await tx.user.delete({
+        where: { id },
+      })
     })
 
     return NextResponse.json({ message: "User deleted successfully" })

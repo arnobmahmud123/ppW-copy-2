@@ -1,41 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Property Preserve Pro
 
-## Getting Started
+Property Preserve Pro is a Next.js, Prisma, and Tailwind application for managing property preservation work orders, messaging, bidding, invoicing, and support operations.
 
-First, run the development server:
+## Local development
+
+This repository now expects PostgreSQL for both local and deployed environments.
+
+1. Create a local Postgres database.
+2. Set `DATABASE_URL` in `.env.local`.
+3. Apply the Prisma migrations.
+4. Start the app.
 
 ```bash
+npm install
+npm run db:migrate:deploy
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local Postgres example
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+createdb ppw_web
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+DATABASE_URL="postgresql://mdshumonmiah@localhost:5432/ppw_web?schema=public"
+NEXTAUTH_URL="http://localhost:3001"
+NEXTAUTH_SECRET="replace-me"
+```
 
-## Learn More
+## Demo data
 
-To learn more about Next.js, take a look at the following resources:
+The repo includes Prisma-based seed scripts in `/prisma` plus a reusable bulk demo data loader in `/scripts/seed-demo-work-orders.js`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Vercel deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This app is prepared for a Vercel-friendly Postgres deployment flow:
 
-## Deploy on Vercel
+- Prisma client is generated on install via `postinstall`
+- Prisma migrations run during `npm run build`
+- The app expects a Postgres `DATABASE_URL`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Before deploying, set these required environment variables in Vercel:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# premiumporpertypreservation
-# premiumporpertypreservation
-# premiumporpertypreservation
-# ppW-copy-2
-# ppW-copy-2
+- `DATABASE_URL`
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `APP_ENCRYPTION_KEY`
+
+Optional provider and AI variables are documented in `.env.example`.

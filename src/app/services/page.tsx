@@ -58,21 +58,21 @@ export default function Services() {
   ]
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="marketing-shell">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="marketing-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-blue-600">PropertyPreserve Pro</Link>
+              <Link href="/" className="text-2xl font-bold text-white">PropertyPreserve Pro</Link>
             </div>
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
-                <Link href="/" className="text-gray-500 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</Link>
-                <Link href="/services" className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Services</Link>
-                <Link href="/about" className="text-gray-500 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">About</Link>
-                <Link href="/contact" className="text-gray-500 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Contact</Link>
-                <Link href="/auth/signin" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium">Sign In</Link>
+                <Link href="/" className="px-3 py-2 text-sm font-medium text-[#a8b0d1] hover:text-white">Home</Link>
+                <Link href="/services" className="px-3 py-2 text-sm font-medium text-white">Services</Link>
+                <Link href="/about" className="px-3 py-2 text-sm font-medium text-[#a8b0d1] hover:text-white">About</Link>
+                <Link href="/contact" className="px-3 py-2 text-sm font-medium text-[#a8b0d1] hover:text-white">Contact</Link>
+                <Link href="/auth/signin" className="brand-button px-4 py-2 text-sm font-medium">Sign In</Link>
               </div>
             </div>
           </div>
@@ -80,10 +80,10 @@ export default function Services() {
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+      <section className="py-20 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">Our Services</h1>
-          <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+          <p className="mx-auto max-w-3xl text-xl text-[#c6d1f0]">
             Comprehensive property preservation services to maintain and protect your investments across Missouri, Arkansas, and Alaska.
           </p>
         </div>
@@ -94,15 +94,15 @@ export default function Services() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {services.map((service, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <div key={index} className="marketing-card rounded-[28px] p-8">
                 <div className="flex items-start mb-6">
-                  <div className="bg-blue-100 p-4 rounded-lg mr-4">
-                    <service.icon className="h-8 w-8 text-blue-600" />
+                  <div className="mr-4 rounded-2xl bg-[#2b3553] p-4">
+                    <service.icon className="h-8 w-8 text-[#ff8a57]" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{service.title}</h3>
-                    <p className="text-gray-600 mb-4">{service.description}</p>
-                    <div className="flex items-center text-green-600 font-semibold">
+                    <h3 className="mb-2 text-2xl font-bold text-white">{service.title}</h3>
+                    <p className="mb-4 text-[#9aa6cc]">{service.description}</p>
+                    <div className="flex items-center font-semibold text-[#ffb487]">
                       <DollarSign className="h-5 w-5 mr-1" />
                       {service.pricing}
                     </div>
@@ -110,11 +110,11 @@ export default function Services() {
                 </div>
                 
                 <div className="mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">What's Included:</h4>
+                  <h4 className="mb-3 text-lg font-semibold text-white">What's Included:</h4>
                   <ul className="space-y-2">
                     {service.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center text-gray-600">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                      <li key={featureIndex} className="flex items-center text-[#9aa6cc]">
+                        <CheckCircle className="mr-2 h-5 w-5 shrink-0 text-[#7ee0a6]" />
                         {feature}
                       </li>
                     ))}
@@ -127,43 +127,43 @@ export default function Services() {
       </section>
 
       {/* Process Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="marketing-section py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
-            <p className="text-xl text-gray-600">Simple, streamlined process from request to completion</p>
+            <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">How It Works</h2>
+            <p className="text-xl text-[#9aa6cc]">Simple, streamlined process from request to completion</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Submit Request</h3>
-              <p className="text-gray-600">Submit your work order with property details and service requirements</p>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#ff6b3c] text-2xl font-bold text-white">1</div>
+              <h3 className="mb-2 text-xl font-semibold text-white">Submit Request</h3>
+              <p className="text-[#9aa6cc]">Submit your work order with property details and service requirements</p>
             </div>
             <div className="text-center">
-              <div className="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">We Assign</h3>
-              <p className="text-gray-600">Our team assigns a qualified contractor and schedules the work</p>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#ff6b3c] text-2xl font-bold text-white">2</div>
+              <h3 className="mb-2 text-xl font-semibold text-white">We Assign</h3>
+              <p className="text-[#9aa6cc]">Our team assigns a qualified contractor and schedules the work</p>
             </div>
             <div className="text-center">
-              <div className="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Work Complete</h3>
-              <p className="text-gray-600">Receive photos, reports, and documentation of completed work</p>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#ff6b3c] text-2xl font-bold text-white">3</div>
+              <h3 className="mb-2 text-xl font-semibold text-white">Work Complete</h3>
+              <p className="text-[#9aa6cc]">Receive photos, reports, and documentation of completed work</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Get Started?</h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+          <p className="mx-auto mb-8 max-w-2xl text-xl text-[#c6d1f0]">
             Submit your first work order today and experience our professional property preservation services.
           </p>
           <Link 
             href="/work-orders/submit"
-            className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold inline-flex items-center justify-center transition-colors"
+            className="brand-button px-8 py-4 text-lg font-semibold"
           >
             Submit Work Order
           </Link>

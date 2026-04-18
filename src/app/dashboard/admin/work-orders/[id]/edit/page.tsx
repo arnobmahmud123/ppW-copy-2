@@ -100,7 +100,22 @@ export default function EditWorkOrder() {
   const [saving, setSaving] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
 
+  const workOrderStatusOptions = [
+    { value: "NEW", label: "New" },
+    { value: "UNASSIGNED", label: "Unassigned" },
+    { value: "IN_PROGRESS", label: "In Progress" },
+    { value: "ASSIGNED", label: "Assigned" },
+    { value: "READ", label: "Read" },
+    { value: "COMPLETED", label: "Completed" },
+    { value: "FIELD_COMPLETE", label: "Field Complete" },
+    { value: "OFFICE_APPROVED", label: "Office Approved" },
+    { value: "SENT_TO_CLIENT", label: "Sent to Client" },
+    { value: "CLOSED", label: "Closed" },
+    { value: "CANCELLED", label: "Cancelled" },
+  ]
+
   const [formData, setFormData] = useState({
+    status: "",
     title: "",
     description: "",
     serviceType: "",
@@ -190,6 +205,7 @@ export default function EditWorkOrder() {
         
         // Populate form with existing data
         const formDataToSet = {
+          status: data.status || "",
           title: data.title || "",
           description: data.description || "",
           serviceType: data.serviceType || "",
@@ -249,8 +265,9 @@ export default function EditWorkOrder() {
         // Redirect to work order detail page
         router.push(`/dashboard/admin/work-orders/${params.id}`)
       } else {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
         console.error("Failed to update work order:", errorData)
+        alert(errorData?.error || "Failed to update work order.")
         setSubmitStatus("error")
       }
     } catch (error) {
@@ -282,12 +299,12 @@ export default function EditWorkOrder() {
 
   if (!workOrder && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#11182a]">
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Work Order Not Found</h2>
-          <p className="text-gray-600 mb-4">The work order you're looking for doesn't exist or you don't have permission to view it.</p>
-          <Link href="/dashboard/admin/work-orders" className="text-blue-600 hover:text-blue-500">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-[#ff8a6a]" />
+          <h2 className="mb-2 text-xl font-semibold text-white">Work Order Not Found</h2>
+          <p className="mb-4 text-[#9aa6cc]">The work order you're looking for doesn't exist or you don't have permission to view it.</p>
+          <Link href="/dashboard/admin/work-orders" className="text-[#7da2ff] hover:text-[#a9c0ff]">
             ← Back to Work Orders
           </Link>
         </div>
@@ -297,36 +314,41 @@ export default function EditWorkOrder() {
 
   if (!workOrder) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#11182a]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading work order...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-[#ff6b3c]"></div>
+          <p className="mt-4 text-[#9aa6cc]">Loading work order...</p>
         </div>
       </div>
     )
   }
 
+  const cardClassName = "rounded-[28px] border border-white/8 bg-[#242c45] p-6 shadow-[0_24px_60px_rgba(7,10,20,0.22)]"
+  const labelClassName = "mb-2 block text-sm font-medium text-[#dce5ff]"
+  const inputClassName = "w-full rounded-2xl border border-white/10 bg-[#1b2236] px-4 py-3 text-[#edf2ff] outline-none transition placeholder:text-[#6f7a9f] focus:border-[#7da2ff] focus:ring-2 focus:ring-[#7da2ff]/25"
+  const disabledInputClassName = "w-full rounded-2xl border border-white/10 bg-[#171e30] px-4 py-3 text-[#8f9cc2]"
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(255,122,73,0.10),transparent_28%),linear-gradient(180deg,#12192b_0%,#0f1626_100%)] text-[#edf2ff]">
       {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="border-b border-white/8 bg-[#1a2135]/95 shadow-[0_16px_40px_rgba(0,0,0,0.22)] backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link 
                 href={`/dashboard/admin/work-orders/${params.id}`}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-[#9aa6cc] hover:text-white"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-white">
                 Edit Work Order: {workOrder.workOrderNumber || workOrder.title}
               </h1>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 href={`/dashboard/admin/work-orders/${params.id}`}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium"
+                className="rounded-2xl border border-white/10 bg-[#2a334c] px-5 py-2.5 text-sm font-medium text-[#edf2ff] transition hover:bg-[#34405f]"
               >
                 Cancel
               </Link>
@@ -336,14 +358,14 @@ export default function EditWorkOrder() {
       </div>
 
       {/* Form */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Basic Information</h2>
+          <div className={cardClassName}>
+            <h2 className="mb-6 text-lg font-medium text-white">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Work Order Title *
                 </label>
                 <input
@@ -352,11 +374,11 @@ export default function EditWorkOrder() {
                   value={formData.title}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Service Type *
                 </label>
                 <select
@@ -364,7 +386,7 @@ export default function EditWorkOrder() {
                   value={formData.serviceType}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 >
                   <option value="">Select Service Type</option>
                   <option value="MOLD_REMEDIATION">Mold Remediation</option>
@@ -377,7 +399,7 @@ export default function EditWorkOrder() {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Description *
                 </label>
                 <textarea
@@ -386,18 +408,36 @@ export default function EditWorkOrder() {
                   onChange={handleInputChange}
                   required
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
             </div>
           </div>
 
           {/* Work Order Details */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Work Order Details</h2>
+          <div className={cardClassName}>
+            <h2 className="mb-6 text-lg font-medium text-white">Work Order Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
+                  Status *
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  required
+                  className={inputClassName}
+                >
+                  {workOrderStatusOptions.map((statusOption) => (
+                    <option key={statusOption.value} value={statusOption.value}>
+                      {statusOption.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClassName}>
                   Work Order Number
                 </label>
                 <input
@@ -405,11 +445,11 @@ export default function EditWorkOrder() {
                   name="workOrderNumber"
                   value={formData.workOrderNumber}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Due Date *
                 </label>
                 <input
@@ -418,18 +458,18 @@ export default function EditWorkOrder() {
                   value={formData.dueDate}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Coordinator
                 </label>
                 <select
                   name="coordinatorId"
                   value={formData.coordinatorId}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 >
                   <option value="">Select a coordinator</option>
                   {users.coordinators.map((coordinator) => (
@@ -440,14 +480,14 @@ export default function EditWorkOrder() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Processor
                 </label>
                 <select
                   name="processorId"
                   value={formData.processorId}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 >
                   <option value="">Select a processor</option>
                   {users.processors.map((processor) => (
@@ -461,11 +501,11 @@ export default function EditWorkOrder() {
           </div>
 
           {/* Address Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Address Information</h2>
+          <div className={cardClassName}>
+            <h2 className="mb-6 text-lg font-medium text-white">Address Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Address Line 1 *
                 </label>
                 <input
@@ -474,11 +514,11 @@ export default function EditWorkOrder() {
                   value={formData.addressLine1}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Address Line 2
                 </label>
                 <input
@@ -486,11 +526,11 @@ export default function EditWorkOrder() {
                   name="addressLine2"
                   value={formData.addressLine2}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   City *
                 </label>
                 <input
@@ -499,11 +539,11 @@ export default function EditWorkOrder() {
                   value={formData.city}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   State *
                 </label>
                 <input
@@ -513,11 +553,11 @@ export default function EditWorkOrder() {
                   onChange={handleInputChange}
                   required
                   maxLength={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Postal Code *
                 </label>
                 <input
@@ -526,18 +566,18 @@ export default function EditWorkOrder() {
                   value={formData.postalCode}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
             </div>
           </div>
 
           {/* GPS Coordinates */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">GPS Coordinates</h2>
+          <div className={cardClassName}>
+            <h2 className="mb-6 text-lg font-medium text-white">GPS Coordinates</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   GPS: Lat
                 </label>
                 <input
@@ -546,11 +586,11 @@ export default function EditWorkOrder() {
                   value={formData.gpsLat}
                   onChange={handleInputChange}
                   step="any"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   GPS: Lon
                 </label>
                 <input
@@ -559,18 +599,18 @@ export default function EditWorkOrder() {
                   value={formData.gpsLon}
                   onChange={handleInputChange}
                   step="any"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
             </div>
           </div>
 
           {/* Access Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Access Information</h2>
+          <div className={cardClassName}>
+            <h2 className="mb-6 text-lg font-medium text-white">Access Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Lock Code
                 </label>
                 <input
@@ -578,11 +618,11 @@ export default function EditWorkOrder() {
                   name="lockCode"
                   value={formData.lockCode}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Lock Location
                 </label>
                 <input
@@ -590,11 +630,11 @@ export default function EditWorkOrder() {
                   name="lockLocation"
                   value={formData.lockLocation}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Key Code
                 </label>
                 <input
@@ -602,11 +642,11 @@ export default function EditWorkOrder() {
                   name="keyCode"
                   value={formData.keyCode}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Gate Code
                 </label>
                 <input
@@ -614,11 +654,11 @@ export default function EditWorkOrder() {
                   name="gateCode"
                   value={formData.gateCode}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Lot Size
                 </label>
                 <input
@@ -626,25 +666,25 @@ export default function EditWorkOrder() {
                   name="lotSize"
                   value={formData.lotSize}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
             </div>
           </div>
 
           {/* Contractor Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Contractor Information</h2>
+          <div className={cardClassName}>
+            <h2 className="mb-6 text-lg font-medium text-white">Contractor Information</h2>
             <div className="grid grid-cols-1 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Assigned Contractor
                 </label>
                 <select
                   name="assignedContractorId"
                   value={formData.assignedContractorId}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 >
                   <option value="">Select a contractor</option>
                   {users.contractors.map((contractor) => (
@@ -655,25 +695,25 @@ export default function EditWorkOrder() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Assigned Date
                 </label>
                 <input
                   type="text"
                   value={workOrder.assignedDate ? new Date(workOrder.assignedDate).toLocaleDateString() : "Not Assigned"}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                  className={disabledInputClassName}
                 />
               </div>
             </div>
           </div>
 
           {/* Scheduling */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Scheduling</h2>
+          <div className={cardClassName}>
+            <h2 className="mb-6 text-lg font-medium text-white">Scheduling</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Start Date
                 </label>
                 <input
@@ -681,11 +721,11 @@ export default function EditWorkOrder() {
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   EST. Completion
                 </label>
                 <input
@@ -693,18 +733,18 @@ export default function EditWorkOrder() {
                   name="estCompletion"
                   value={formData.estCompletion}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClassName}>
                   Field Complete
                 </label>
                 <input
                   type="text"
                   value={workOrder.fieldComplete ? new Date(workOrder.fieldComplete).toLocaleDateString() : "Not Complete"}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                  className={disabledInputClassName}
                 />
               </div>
             </div>
@@ -714,18 +754,18 @@ export default function EditWorkOrder() {
           <div className="flex justify-end space-x-4">
             <Link
               href={`/dashboard/admin/work-orders/${params.id}`}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-md text-sm font-medium"
+              className="rounded-2xl border border-white/10 bg-[#2a334c] px-6 py-3 text-sm font-medium text-[#edf2ff] transition hover:bg-[#34405f]"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="flex items-center rounded-2xl bg-[linear-gradient(180deg,#ff7a49_0%,#ff6b3c_100%)] px-6 py-3 text-sm font-medium text-white shadow-[0_16px_32px_rgba(255,107,60,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
                   Saving...
                 </>
               ) : (
@@ -739,11 +779,11 @@ export default function EditWorkOrder() {
 
           {/* Status Messages */}
           {submitStatus === "success" && (
-            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+            <div className="rounded-[24px] border border-emerald-400/20 bg-emerald-500/10 p-4">
               <div className="flex">
-                <CheckCircle className="h-5 w-5 text-green-400" />
+                <CheckCircle className="h-5 w-5 text-emerald-300" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-green-800">
+                  <p className="text-sm font-medium text-emerald-200">
                     Work order updated successfully!
                   </p>
                 </div>
@@ -752,11 +792,11 @@ export default function EditWorkOrder() {
           )}
 
           {submitStatus === "error" && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="rounded-[24px] border border-[#ff8a6a]/20 bg-[#ff8a6a]/10 p-4">
               <div className="flex">
-                <AlertCircle className="h-5 w-5 text-red-400" />
+                <AlertCircle className="h-5 w-5 text-[#ffb19e]" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">
+                  <p className="text-sm font-medium text-[#ffd4c8]">
                     There was an error updating the work order. Please try again.
                   </p>
                 </div>

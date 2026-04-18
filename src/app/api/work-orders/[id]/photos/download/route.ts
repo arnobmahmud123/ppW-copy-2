@@ -13,11 +13,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const scope = url.searchParams.get("scope") || "all"
   const taskId = url.searchParams.get("taskId") || undefined
   const requirementId = url.searchParams.get("requirementId") || undefined
+  const fileIds = url.searchParams.getAll("fileId")
 
   // Build where clause based on scope
   let whereClause: any = { workOrderId: id }
   
-  if (scope === "task" && taskId) {
+  if (scope === "selected" && fileIds.length > 0) {
+    whereClause.id = { in: fileIds }
+  } else if (scope === "task" && taskId) {
     whereClause.taskId = taskId
   } else if (scope === "requirement" && requirementId) {
     whereClause.requirementId = requirementId
@@ -55,7 +58,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   // Generate filename based on scope
   let filename = `workorder-${id}-photos.zip`
-  if (scope === "task" && taskId) {
+  if (scope === "selected" && fileIds.length > 0) {
+    filename = `workorder-${id}-selected-photos.zip`
+  } else if (scope === "task" && taskId) {
     filename = `workorder-${id}-task-${taskId}-photos.zip`
   } else if (scope === "requirement" && requirementId) {
     filename = `workorder-${id}-requirement-${requirementId}-photos.zip`
@@ -68,5 +73,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
   })
 }
-
 

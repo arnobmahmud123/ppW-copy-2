@@ -31,11 +31,26 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ contractors })
+    return NextResponse.json({
+      contractors: contractors.map((contractor) => ({
+        id: contractor.id,
+        name: contractor.name,
+        email: contractor.email,
+        phone: contractor.phone,
+        company: contractor.company,
+        address: "address" in contractor ? contractor.address : null,
+        role: contractor.role,
+        createdAt: contractor.createdAt,
+        _count: contractor._count,
+      })),
+    })
   } catch (error) {
     console.error("Contractors fetch error:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     )
   }

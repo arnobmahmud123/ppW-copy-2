@@ -12,6 +12,7 @@ export default function SignUp() {
     confirmPassword: "",
     phone: "",
     company: "",
+    address: "",
     role: "CLIENT" as "CLIENT" | "CONTRACTOR"
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -42,6 +43,7 @@ export default function SignUp() {
           password: formData.password,
           phone: formData.phone,
           company: formData.company,
+          address: formData.address,
           role: formData.role,
         }),
       })
@@ -67,17 +69,17 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="marketing-shell flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+      <div className="marketing-card max-w-md w-full space-y-8 rounded-[32px] p-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-2 text-center text-3xl font-extrabold text-white">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-[#9aa6cc]">
             Or{" "}
             <Link
               href="/auth/signin"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-[#ff8a57] hover:text-[#ffb487]"
             >
               sign in to existing account
             </Link>
@@ -85,13 +87,13 @@ export default function SignUp() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+            <div className="rounded-2xl border border-[#5a2f35] bg-[#3b2228] px-4 py-3 text-[#ffb1bc]">
               {error}
             </div>
           )}
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-sm font-medium text-[#dce5ff]">
                 Full Name
               </label>
               <input
@@ -101,12 +103,12 @@ export default function SignUp() {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="brand-input mt-1 appearance-none relative block px-3 py-2 sm:text-sm"
                 placeholder="Enter your full name"
               />
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-[#dce5ff]">
                 Email address
               </label>
               <input
@@ -117,12 +119,12 @@ export default function SignUp() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="brand-input mt-1 appearance-none relative block px-3 py-2 sm:text-sm"
                 placeholder="Enter your email"
               />
             </div>
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="phone" className="block text-sm font-medium text-[#dce5ff]">
                 Phone Number
               </label>
               <input
@@ -131,12 +133,12 @@ export default function SignUp() {
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="brand-input mt-1 appearance-none relative block px-3 py-2 sm:text-sm"
                 placeholder="Enter your phone number"
               />
             </div>
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="company" className="block text-sm font-medium text-[#dce5ff]">
                 Company
               </label>
               <input
@@ -145,12 +147,26 @@ export default function SignUp() {
                 type="text"
                 value={formData.company}
                 onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="brand-input mt-1 appearance-none relative block px-3 py-2 sm:text-sm"
                 placeholder="Enter your company name"
               />
             </div>
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="address" className="block text-sm font-medium text-[#dce5ff]">
+                Address
+              </label>
+              <input
+                id="address"
+                name="address"
+                type="text"
+                value={formData.address}
+                onChange={handleChange}
+                className="brand-input mt-1 appearance-none relative block px-3 py-2 sm:text-sm"
+                placeholder="Enter your address"
+              />
+            </div>
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-[#dce5ff]">
                 Account Type
               </label>
               <select
@@ -158,14 +174,14 @@ export default function SignUp() {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="brand-input mt-1 block px-3 py-2 sm:text-sm"
               >
                 <option value="CLIENT">Client</option>
                 <option value="CONTRACTOR">Contractor</option>
               </select>
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-[#dce5ff]">
                 Password
               </label>
               <input
@@ -176,12 +192,12 @@ export default function SignUp() {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="brand-input mt-1 appearance-none relative block px-3 py-2 sm:text-sm"
                 placeholder="Create a password"
               />
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#dce5ff]">
                 Confirm Password
               </label>
               <input
@@ -192,7 +208,7 @@ export default function SignUp() {
                 required
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="brand-input mt-1 appearance-none relative block px-3 py-2 sm:text-sm"
                 placeholder="Confirm your password"
               />
             </div>
@@ -202,7 +218,7 @@ export default function SignUp() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="brand-button group relative flex w-full justify-center px-4 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? "Creating account..." : "Create account"}
             </button>

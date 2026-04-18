@@ -106,10 +106,10 @@ export default function UsersPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Users className="mr-3 h-8 w-8 text-blue-600" />
-                User Management
+                Manage Users
               </h1>
               <p className="mt-2 text-gray-600">
-                Manage contractors, coordinators, processors, and clients
+                Manage users across contractors, coordinators, processors, clients, and admins
               </p>
             </div>
             <button

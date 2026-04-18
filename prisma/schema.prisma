@@ -7,172 +7,21 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-/// User accounts for clients, contractors, and admins
-model User {
-  id             String      @id @default(cuid())
-  email          String      @unique
-  hashedPassword String
-  name           String
-  role           Role
-  phone          String?
-  company        String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+// ============================================
+// ENUMS
+// ============================================
 
-  // Relations
-  workOrdersAsClient  WorkOrder[] @relation("ClientWorkOrders")
-  workOrdersCreated  WorkOrder[] @relation("CreatorWorkOrders")
-  workOrdersAssigned WorkOrder[] @relation("AssignedContractorWorkOrders")
-  workOrdersAsCoordinator WorkOrder[] @relation("AssignedCoordinatorWorkOrders")
-  workOrdersAsProcessor WorkOrder[] @relation("AssignedProcessorWorkOrders")
-  messages           Message[]
-  invoices           Invoice[]    @relation("ClientInvoices")
-}
-
-/// Work orders submitted by clients and fulfilled by contractors
-model WorkOrder {
-  id             String           @id @default(cuid())
-  title          String
-  description    String
-  addressLine1   String
-  addressLine2   String?
-  city           String
-  state          String
-  postalCode     String
-  serviceType    ServiceType
-  status         WorkOrderStatus  @default(UNASSIGNED)
-  dueDate        DateTime?
-  tasks          String?          // JSON string to store task data
-  
-  // New fields for enhanced work order management
-  workOrderNumber String?         // Manual work order number
-  coordinator     String?         // Coordinator name
-  processor       String?         // Processor name
-  gpsLat          Float?          // GPS Latitude
-  gpsLon          Float?          // GPS Longitude
-  lockCode        String?         // Lock code
-  lockLocation    String?         // Lock location
-  keyCode         String?         // Key code
-  gateCode        String?         // Gate code
-  lotSize         String?         // Lot size
-  assignedDate    DateTime?       // Dynamic assigned date
-  startDate       DateTime?       // Manual start date
-  estCompletion   DateTime?       // Manual estimated completion
-  fieldComplete   DateTime?       // Dynamic field complete date
-  
-  // Manual contractor information (for initial entry)
-  contractorName  String?         // Manual contractor name
-  contractorEmail String?         // Manual contractor email
-  contractorPhone String?         // Manual contractor phone
-  
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  // Foreign keys
-  clientId       String
-  client         User             @relation("ClientWorkOrders", fields: [clientId], references: [id])
-
-  creatorId      String
-  creator        User             @relation("CreatorWorkOrders", fields: [creatorId], references: [id])
-
-  assignedContractorId String?
-  assignedContractor   User?      @relation("AssignedContractorWorkOrders", fields: [assignedContractorId], references: [id])
-  
-  assignedCoordinatorId String?
-  assignedCoordinator   User?      @relation("AssignedCoordinatorWorkOrders", fields: [assignedCoordinatorId], references: [id])
-  
-  assignedProcessorId String?
-  assignedProcessor   User?      @relation("AssignedProcessorWorkOrders", fields: [assignedProcessorId], references: [id])
-
-  // Relations
-  messages       Message[]
-  files          FileAttachment[]
-  invoice        Invoice?
-}
-
-/// Messages and comments tied to a work order, task, or bid
-model Message {
-  id          String     @id @default(cuid())
-  content     String
-  createdAt   DateTime   @default(now())
-
-  workOrderId String
-  workOrder   WorkOrder  @relation(fields: [workOrderId], references: [id])
-
-  authorId    String
-  author      User       @relation(fields: [authorId], references: [id])
-
-  // Optional task/bid specific messaging
-  taskId      String?    // For task-level messages
-  bidId       String?    // For bid-level messages
-}
-
-/// File and photo attachments associated with work orders
-model FileAttachment {
-  id          String            @id @default(cuid())
-  url         String
-  key         String            @unique
-  mimeType    String
-  category    FileCategory
-  // Optional linkage to task/requirement for restoring thumbnails per bucket
-  taskId       String?
-  requirementId String?
-  createdAt   DateTime          @default(now())
-
-  workOrderId String
-  workOrder   WorkOrder         @relation(fields: [workOrderId], references: [id])
-}
-
-/// Invoices generated after approval/QC
-model Invoice {
-  id            String        @id @default(cuid())
-  workOrderId   String        @unique
-  workOrder     WorkOrder     @relation(fields: [workOrderId], references: [id])
-
-  clientId      String
-  client        User          @relation("ClientInvoices", fields: [clientId], references: [id])
-
-  invoiceNumber String
-  invoiceDate   DateTime
-  status        InvoiceStatus @default(DRAFT)
-  sentToClientDate DateTime?
-  completeDate  DateTime?
-  noCharge      Boolean       @default(false)
-  clientTotal   Float         @default(0)
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Relations
-  items         InvoiceItem[]
-
-  // Optional external references
-  stripeInvoiceId String?
-  stripePaymentId String?
-}
-
-/// Invoice line items
-model InvoiceItem {
-  id              String   @id @default(cuid())
-  invoiceId       String
-  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  
-  item            String
-  qty             Float
-  price           Float
-  total           Float
-  adjPrice        Float    @default(0)
-  discountPercent Float    @default(0)
-  finalTotal      Float
-  comments        String?
-  flatFee         Boolean  @default(false)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+/// User roles in the system
+enum Role {
+  CLIENT
+  CONTRACTOR
+  COORDINATOR
+  PROCESSOR
+  ADMIN
 }
 
 /// Service types offered
@@ -188,9 +37,12 @@ enum ServiceType {
 
 /// Work order status lifecycle
 enum WorkOrderStatus {
+  NEW
   UNASSIGNED
+  IN_PROGRESS
   ASSIGNED
   READ
+  COMPLETED
   FIELD_COMPLETE
   OFFICE_APPROVED
   SENT_TO_CLIENT
@@ -210,19 +62,1015 @@ enum FileCategory {
   OTHER
 }
 
-/// User roles in the system
-enum Role {
-  CLIENT
-  CONTRACTOR
-  COORDINATOR
-  PROCESSOR
-  ADMIN
-}
-
 /// Invoice lifecycle status
 enum InvoiceStatus {
   DRAFT
   SENT
   PAID
   OVERDUE
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum NotificationType {
+  MESSAGE
+}
+
+enum MessageThreadNotificationLevel {
+  ALL
+  MENTIONS_ONLY
+  MUTED
+}
+
+// ============================================
+// MESSAGING SYSTEM ENUMS
+// ============================================
+
+enum MessageSpaceTaskStatus {
+  OPEN
+  DONE
+  APPROVED
+  CANCELLED
+}
+
+enum MessageVisibilityScope {
+  INTERNAL_ONLY
+  CONTRACTOR_VISIBLE
+  CLIENT_VISIBLE
+  SYSTEM_ONLY
+  TASK_PARTICIPANTS_ONLY
+}
+
+enum MessageType {
+  COMMENT
+  SYSTEM_EVENT
+  REVISION_REQUEST
+  CLIENT_UPDATE
+  ASSIGNMENT_NOTE
+  QC_FEEDBACK
+  BID_UPDATE
+  INSPECTION_UPDATE
+  ACCOUNTING_NOTE
+}
+
+enum MessageAuthorType {
+  USER
+  SYSTEM
+  CONTRACTOR
+  CLIENT
+}
+
+enum MessageUrgency {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum MessageThreadType {
+  WORK_ORDER
+  TASK
+  SERVICE_ITEM
+  BID
+  INSPECTION
+  GENERAL
+}
+
+enum MessageAttachmentSourceType {
+  DIRECT_UPLOAD
+  EXISTING_MEDIA
+}
+
+enum MessageTemplateCategory {
+  GENERAL
+  REVISION_REQUEST
+  CLIENT_UPDATE
+  ASSIGNMENT_NOTE
+  QC_FEEDBACK
+  ACCOUNTING_NOTE
+}
+
+enum MessageEscalationStatus {
+  OPEN
+  RESOLVED
+}
+
+enum MessageCallMode {
+  AUDIO
+  VIDEO
+}
+
+enum MessageCallStatus {
+  RINGING
+  ACTIVE
+  ENDED
+}
+
+enum UserPresenceStatus {
+  ONLINE
+  AWAY
+  OFFLINE
+}
+
+enum MessageMeetingStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum MessageBotType {
+  REMINDER
+  WORKFLOW
+  AI_ASSISTANT
+}
+
+enum MessageIntegrationType {
+  GITHUB
+  JIRA
+  NOTION
+  GENERIC
+}
+
+enum MessageWebhookEvent {
+  MESSAGE_CREATED
+  TASK_CREATED
+  TASK_UPDATED
+  NOTE_UPDATED
+  POLL_CREATED
+  MEETING_CREATED
+}
+
+enum MessageThreadParticipantRole {
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+// ============================================
+// CORE MODELS
+// ============================================
+
+/// User accounts for clients, contractors, and admins
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  hashedPassword String
+  name           String
+  role           Role
+  phone          String?
+  company        String?
+  address        String?
+  avatarUrl      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations - Work Orders
+  workOrdersAsClient      WorkOrder[] @relation("ClientWorkOrders")
+  workOrdersCreated       WorkOrder[] @relation("CreatorWorkOrders")
+  workOrdersAssigned      WorkOrder[] @relation("AssignedContractorWorkOrders")
+  workOrdersAsCoordinator WorkOrder[] @relation("AssignedCoordinatorWorkOrders")
+  workOrdersAsProcessor   WorkOrder[] @relation("AssignedProcessorWorkOrders")
+
+  // Relations - Messages (old simple model)
+  messages     Message[]
+  messageReads MessageRead[]
+
+  // Relations - Notifications
+  notifications Notification[]
+  invoices      Invoice[]      @relation("ClientInvoices")
+
+  // Relations - Messaging System (new comprehensive model)
+  presence                             UserPresence?
+  messageThreadsCreated                MessageThread[]                       @relation("MessageThreadCreatedBy")
+  authoredMessages                     WorkOrderMessage[]                    @relation("MessageCreatedBy")
+  messageMentions                      MessageMention[]                      @relation("MessageMentionedUser")
+  messageTemplates                     MessageTemplate[]                     @relation("MessageTemplateCreatedBy")
+  messageEscalationsCreated            MessageEscalation[]                   @relation("MessageEscalatedBy")
+  messageEscalationsAssigned           MessageEscalation[]                   @relation("MessageEscalatedTo")
+  messageEscalationsResolved           MessageEscalation[]                   @relation("MessageEscalationResolvedBy")
+  messageEscalationComments            MessageEscalationComment[]            @relation("MessageEscalationCommentCreatedBy")
+  messageResponseAssignments           WorkOrderMessage[]                    @relation("MessageAssignedResponder")
+  messageAttachmentsAdded              MessageAttachment[]                   @relation("MessageAttachmentCreatedBy")
+  messageAttachmentVersionsCreated     MessageAttachmentVersion[]            @relation("MessageAttachmentVersionCreatedBy")
+  assignedMessageSpaceTasks            MessageSpaceTask[]                    @relation("MessageSpaceTaskAssignedTo")
+  createdMessageSpaceTasks             MessageSpaceTask[]                    @relation("MessageSpaceTaskCreatedBy")
+  completedMessageSpaceTasks           MessageSpaceTask[]                    @relation("MessageSpaceTaskCompletedBy")
+  approvedMessageSpaceTasks            MessageSpaceTask[]                    @relation("MessageSpaceTaskApprovedBy")
+  followedMessageThreads               MessageThreadFollow[]
+  messageThreadMemberships             MessageThreadParticipant[]            @relation("MessageThreadParticipantUser")
+  invitedMessageThreadMemberships      MessageThreadParticipant[]            @relation("MessageThreadParticipantAddedBy")
+  createdMessageCalls                  MessageCallSession[]                  @relation("MessageCallCreatedBy")
+  endedMessageCalls                    MessageCallSession[]                  @relation("MessageCallEndedBy")
+  messageCallParticipants              MessageCallParticipant[]              @relation("MessageCallParticipantUser")
+  savedMessages                        SavedMessage[]
+  messageThreadBlocks                  MessageThreadBlock[]
+  messageNotificationPreference        UserNotificationPreference?
+  messageThreadNotificationPreferences MessageThreadNotificationPreference[]
+  messageSharedNotesCreated            MessageSharedNote[]                   @relation("MessageSharedNoteCreatedBy")
+  messageSharedNotesUpdated            MessageSharedNote[]                   @relation("MessageSharedNoteUpdatedBy")
+  createdMessagePolls                  MessagePoll[]                         @relation("MessagePollCreatedBy")
+  messagePollVotes                     MessagePollVote[]
+  createdMessageMeetings               MessageMeeting[]                      @relation("MessageMeetingCreatedBy")
+  createdMessageBots                   MessageThreadBot[]                    @relation("MessageThreadBotCreatedBy")
+  createdMessageIntegrations           MessageThreadIntegration[]            @relation("MessageThreadIntegrationCreatedBy")
+  createdMessageWebhooks               MessageThreadWebhook[]                @relation("MessageThreadWebhookCreatedBy")
+  createdMessageGuestInvites           MessageThreadGuestInvite[]            @relation("MessageThreadGuestInviteCreatedBy")
+  createdMessageTranslations           MessageTranslation[]                  @relation("MessageTranslationCreatedBy")
+  createdSupportTickets                SupportTicket[]                       @relation("SupportTicketCreatedBy")
+  assignedSupportTickets               SupportTicket[]                       @relation("SupportTicketAssignedTo")
+  closedSupportTickets                 SupportTicket[]                       @relation("SupportTicketClosedBy")
+  supportTicketComments                SupportTicketComment[]                @relation("SupportTicketCommentCreatedBy")
+}
+
+/// Work orders submitted by clients and fulfilled by contractors
+model WorkOrder {
+  id           String          @id @default(cuid())
+  title        String
+  description  String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  serviceType  ServiceType
+  status       WorkOrderStatus @default(UNASSIGNED)
+  dueDate      DateTime?
+  tasks        String? // JSON string to store task data
+
+  // New fields for enhanced work order management
+  workOrderNumber String?
+  coordinator     String?
+  processor       String?
+  gpsLat          Float?
+  gpsLon          Float?
+  lockCode        String?
+  lockLocation    String?
+  keyCode         String?
+  gateCode        String?
+  lotSize         String?
+  assignedDate    DateTime?
+  startDate       DateTime?
+  estCompletion   DateTime?
+  fieldComplete   DateTime?
+
+  // Manual contractor information
+  contractorName  String?
+  contractorEmail String?
+  contractorPhone String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign keys
+  clientId String
+  client   User   @relation("ClientWorkOrders", fields: [clientId], references: [id])
+
+  creatorId String
+  creator   User   @relation("CreatorWorkOrders", fields: [creatorId], references: [id])
+
+  assignedContractorId String?
+  assignedContractor   User?   @relation("AssignedContractorWorkOrders", fields: [assignedContractorId], references: [id])
+
+  assignedCoordinatorId String?
+  assignedCoordinator   User?   @relation("AssignedCoordinatorWorkOrders", fields: [assignedCoordinatorId], references: [id])
+
+  assignedProcessorId String?
+  assignedProcessor   User?   @relation("AssignedProcessorWorkOrders", fields: [assignedProcessorId], references: [id])
+
+  // Relations
+  messages          Message[]
+  messageSpaceTasks MessageSpaceTask[]
+  workOrderMessages MessageThread[]    @relation("WorkOrderMessageThread")
+  threadedMessages  WorkOrderMessage[]
+  notifications     Notification[]
+  files             FileAttachment[]
+  invoice           Invoice?
+}
+
+/// Messages and comments tied to a work order, task, or bid
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  // Optional task/bid specific messaging
+  taskId String?
+  bidId  String?
+
+  reads         MessageRead[]
+  notifications Notification[]
+}
+
+model MessageRead {
+  id     String   @id @default(cuid())
+  readAt DateTime @default(now())
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, readAt])
+}
+
+// ============================================
+// MESSAGING SYSTEM MODELS
+// ============================================
+
+model UserPresence {
+  id             String             @id @default(cuid())
+  userId         String             @unique
+  status         UserPresenceStatus @default(ONLINE)
+  activeThreadId String?
+  lastActiveAt   DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeThread   MessageThread?     @relation("UserPresenceActiveThread", fields: [activeThreadId], references: [id], onDelete: SetNull)
+
+  @@index([status, lastActiveAt])
+  @@map("user_presences")
+}
+
+model MessageThread {
+  id              String            @id @default(cuid())
+  threadType      MessageThreadType
+  title           String?
+  channelImageUrl String?
+  workspaceKey    String?
+  workspaceLabel  String?
+  workOrderId     String?
+  createdByUserId String?
+  lastMessageAt   DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  workOrder               WorkOrder?                            @relation("WorkOrderMessageThread", fields: [workOrderId], references: [id], onDelete: Cascade)
+  createdByUser           User?                                 @relation("MessageThreadCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  messages                WorkOrderMessage[]
+  spaceTasks              MessageSpaceTask[]
+  activePresences         UserPresence[]                        @relation("UserPresenceActiveThread")
+  followers               MessageThreadFollow[]
+  participants            MessageThreadParticipant[]
+  callSessions            MessageCallSession[]
+  threadBlocks            MessageThreadBlock[]
+  notificationPreferences MessageThreadNotificationPreference[]
+  sharedNotes             MessageSharedNote[]
+  polls                   MessagePoll[]
+  meetings                MessageMeeting[]
+  bots                    MessageThreadBot[]
+  integrations            MessageThreadIntegration[]
+  webhooks                MessageThreadWebhook[]
+  guestInvites            MessageThreadGuestInvite[]
+
+  @@index([threadType, lastMessageAt])
+  @@index([workspaceKey, updatedAt])
+  @@index([workOrderId])
+  @@map("message_threads")
+}
+
+model MessageCallSession {
+  id              String                   @id @default(cuid())
+  messageThreadId String
+  createdByUserId String?
+  endedByUserId   String?
+  roomName        String                   @unique
+  title           String?
+  mode            MessageCallMode          @default(VIDEO)
+  status          MessageCallStatus        @default(RINGING)
+  startedAt       DateTime                 @default(now())
+  endedAt         DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  messageThread   MessageThread            @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  createdByUser   User?                    @relation("MessageCallCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  endedByUser     User?                    @relation("MessageCallEndedBy", fields: [endedByUserId], references: [id], onDelete: SetNull)
+  participants    MessageCallParticipant[]
+
+  @@index([messageThreadId, status, startedAt])
+  @@index([createdByUserId, startedAt])
+  @@map("message_call_sessions")
+}
+
+model MessageCallParticipant {
+  id                   String             @id @default(cuid())
+  messageCallSessionId String
+  userId               String
+  joinedAt             DateTime           @default(now())
+  leftAt               DateTime?
+  lastSeenAt           DateTime           @default(now())
+  micEnabled           Boolean            @default(true)
+  cameraEnabled        Boolean            @default(true)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  messageCallSession   MessageCallSession @relation(fields: [messageCallSessionId], references: [id], onDelete: Cascade)
+  user                 User               @relation("MessageCallParticipantUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageCallSessionId, userId])
+  @@index([userId, lastSeenAt])
+  @@index([messageCallSessionId, leftAt])
+  @@map("message_call_participants")
+}
+
+model MessageThreadParticipant {
+  id              String                       @id @default(cuid())
+  messageThreadId String
+  userId          String
+  role            MessageThreadParticipantRole @default(MEMBER)
+  addedByUserId   String?
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  messageThread   MessageThread                @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  user            User                         @relation("MessageThreadParticipantUser", fields: [userId], references: [id], onDelete: Cascade)
+  addedByUser     User?                        @relation("MessageThreadParticipantAddedBy", fields: [addedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([messageThreadId, userId])
+  @@index([userId, createdAt])
+  @@map("message_thread_participants")
+}
+
+model WorkOrderMessage {
+  id                  String                 @id @default(cuid())
+  messageThreadId     String
+  parentMessageId     String?
+  quotedMessageId     String?
+  workOrderId         String?
+  visibilityScope     MessageVisibilityScope
+  messageType         MessageType            @default(COMMENT)
+  authorType          MessageAuthorType      @default(USER)
+  urgency             MessageUrgency         @default(NORMAL)
+  subject             String?
+  body                String
+  systemEventKey      String?
+  requiresResponse    Boolean                @default(false)
+  responseDueAt       DateTime?
+  assignedResponderId String?
+  resolvedAt          DateTime?
+  expiresAt           DateTime?
+  isPinned            Boolean                @default(false)
+  createdByUserId     String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  // Relations
+  messageThread     MessageThread        @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  parentMessage     WorkOrderMessage?    @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  replies           WorkOrderMessage[]   @relation("MessageReplies")
+  quotedMessage     WorkOrderMessage?    @relation("MessageQuotes", fields: [quotedMessageId], references: [id], onDelete: SetNull)
+  quotedByMessages  WorkOrderMessage[]   @relation("MessageQuotes")
+  workOrder         WorkOrder?           @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  createdByUser     User?                @relation("MessageCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  assignedResponder User?                @relation("MessageAssignedResponder", fields: [assignedResponderId], references: [id], onDelete: SetNull)
+  attachments       MessageAttachment[]
+  translations      MessageTranslation[]
+  mentions          MessageMention[]
+  escalations       MessageEscalation[]
+  spaceTasks        MessageSpaceTask[]
+  savedByUsers      SavedMessage[]
+
+  @@index([messageThreadId, createdAt])
+  @@index([expiresAt])
+  @@index([visibilityScope, createdAt])
+  @@index([workOrderId])
+  @@index([requiresResponse, responseDueAt])
+  @@index([assignedResponderId])
+  @@map("work_order_messages")
+}
+
+model MessageThreadGuestInvite {
+  id              String        @id @default(cuid())
+  messageThreadId String
+  email           String
+  name            String?
+  accessToken     String        @unique
+  invitedByUserId String?
+  invitedAt       DateTime      @default(now())
+  expiresAt       DateTime?
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  messageThread   MessageThread @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  invitedByUser   User?         @relation("MessageThreadGuestInviteCreatedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageThreadId, invitedAt])
+  @@index([email, revokedAt])
+  @@map("message_thread_guest_invites")
+}
+
+model MessageTranslation {
+  id                 String           @id @default(cuid())
+  workOrderMessageId String
+  targetLanguage     String
+  translatedBody     String
+  provider           String?
+  createdByUserId    String?
+  createdAt          DateTime         @default(now())
+  message            WorkOrderMessage @relation(fields: [workOrderMessageId], references: [id], onDelete: Cascade)
+  createdByUser      User?            @relation("MessageTranslationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([workOrderMessageId, targetLanguage])
+  @@index([targetLanguage, createdAt])
+  @@map("message_translations")
+}
+
+model MessageSpaceTask {
+  id                String                 @id @default(cuid())
+  messageThreadId   String
+  workOrderId       String?
+  messageId         String?
+  title             String
+  description       String?
+  assignedToUserId  String
+  createdByUserId   String?
+  completedByUserId String?
+  approvedByUserId  String?
+  status            MessageSpaceTaskStatus @default(OPEN)
+  dueAt             DateTime?
+  completedAt       DateTime?
+  approvedAt        DateTime?
+  archivedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  messageThread     MessageThread          @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  workOrder         WorkOrder?             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  message           WorkOrderMessage?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  assignedToUser    User                   @relation("MessageSpaceTaskAssignedTo", fields: [assignedToUserId], references: [id], onDelete: Cascade)
+  createdByUser     User?                  @relation("MessageSpaceTaskCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  completedByUser   User?                  @relation("MessageSpaceTaskCompletedBy", fields: [completedByUserId], references: [id], onDelete: SetNull)
+  approvedByUser    User?                  @relation("MessageSpaceTaskApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageThreadId, status])
+  @@index([assignedToUserId, status])
+  @@index([workOrderId, status])
+  @@map("message_space_tasks")
+}
+
+model MessageThreadFollow {
+  id              String        @id @default(cuid())
+  messageThreadId String
+  userId          String
+  createdAt       DateTime      @default(now())
+  messageThread   MessageThread @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageThreadId, userId])
+  @@index([userId, createdAt])
+  @@map("message_thread_follows")
+}
+
+model UserNotificationPreference {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  notifyOnMentions Boolean  @default(true)
+  notifyOnKeywords Boolean  @default(true)
+  keywordList      String?
+  dndEnabled       Boolean  @default(false)
+  dndStartMinutes  Int?
+  dndEndMinutes    Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
+}
+
+model MessageThreadNotificationPreference {
+  id              String                         @id @default(cuid())
+  messageThreadId String
+  userId          String
+  level           MessageThreadNotificationLevel @default(ALL)
+  mutedUntil      DateTime?
+  snoozedUntil    DateTime?
+  customKeywords  String?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  messageThread   MessageThread                  @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  user            User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageThreadId, userId])
+  @@index([userId, updatedAt])
+  @@map("message_thread_notification_preferences")
+}
+
+model MessageSharedNote {
+  id              String        @id @default(cuid())
+  messageThreadId String
+  title           String
+  body            String
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  messageThread   MessageThread @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  createdByUser   User?         @relation("MessageSharedNoteCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser   User?         @relation("MessageSharedNoteUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageThreadId, updatedAt])
+  @@map("message_shared_notes")
+}
+
+model MessagePoll {
+  id              String              @id @default(cuid())
+  messageThreadId String
+  question        String
+  description     String?
+  allowsMultiple  Boolean             @default(false)
+  closesAt        DateTime?
+  createdByUserId String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  messageThread   MessageThread       @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  createdByUser   User?               @relation("MessagePollCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  options         MessagePollOption[]
+  votes           MessagePollVote[]
+
+  @@index([messageThreadId, createdAt])
+  @@map("message_polls")
+}
+
+model MessagePollOption {
+  id            String            @id @default(cuid())
+  messagePollId String
+  label         String
+  position      Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  poll          MessagePoll       @relation(fields: [messagePollId], references: [id], onDelete: Cascade)
+  votes         MessagePollVote[]
+
+  @@index([messagePollId, position])
+  @@map("message_poll_options")
+}
+
+model MessagePollVote {
+  id                  String            @id @default(cuid())
+  messagePollId       String
+  messagePollOptionId String
+  userId              String
+  createdAt           DateTime          @default(now())
+  poll                MessagePoll       @relation(fields: [messagePollId], references: [id], onDelete: Cascade)
+  option              MessagePollOption @relation(fields: [messagePollOptionId], references: [id], onDelete: Cascade)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messagePollId, messagePollOptionId, userId])
+  @@index([userId, createdAt])
+  @@map("message_poll_votes")
+}
+
+model MessageMeeting {
+  id              String               @id @default(cuid())
+  messageThreadId String
+  title           String
+  description     String?
+  startsAt        DateTime
+  endsAt          DateTime
+  location        String?
+  meetingUrl      String?
+  status          MessageMeetingStatus @default(SCHEDULED)
+  createdByUserId String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  messageThread   MessageThread        @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  createdByUser   User?                @relation("MessageMeetingCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageThreadId, startsAt])
+  @@map("message_meetings")
+}
+
+model MessageThreadBot {
+  id              String         @id @default(cuid())
+  messageThreadId String
+  name            String
+  botType         MessageBotType
+  description     String?
+  prompt          String?
+  cadenceMinutes  Int?
+  enabled         Boolean        @default(true)
+  nextRunAt       DateTime?
+  lastRunAt       DateTime?
+  createdByUserId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  messageThread   MessageThread  @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  createdByUser   User?          @relation("MessageThreadBotCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageThreadId, enabled])
+  @@map("message_thread_bots")
+}
+
+model MessageThreadIntegration {
+  id              String                 @id @default(cuid())
+  messageThreadId String
+  integrationType MessageIntegrationType
+  displayName     String
+  workspaceUrl    String?
+  projectKey      String?
+  configJson      String?
+  enabled         Boolean                @default(true)
+  createdByUserId String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  messageThread   MessageThread          @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  createdByUser   User?                  @relation("MessageThreadIntegrationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageThreadId, integrationType])
+  @@map("message_thread_integrations")
+}
+
+model MessageThreadWebhook {
+  id               String        @id @default(cuid())
+  messageThreadId  String
+  displayName      String
+  targetUrl        String
+  secret           String?
+  subscribedEvents String
+  enabled          Boolean       @default(true)
+  lastTriggeredAt  DateTime?
+  lastStatus       String?
+  createdByUserId  String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  messageThread    MessageThread @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  createdByUser    User?         @relation("MessageThreadWebhookCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageThreadId, enabled])
+  @@map("message_thread_webhooks")
+}
+
+model SavedMessage {
+  id        String           @id @default(cuid())
+  messageId String
+  userId    String
+  createdAt DateTime         @default(now())
+  message   WorkOrderMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, createdAt])
+  @@map("saved_messages")
+}
+
+model MessageAttachment {
+  id              String                      @id @default(cuid())
+  messageId       String
+  sourceType      MessageAttachmentSourceType @default(DIRECT_UPLOAD)
+  fileName        String
+  storageKey      String
+  mimeType        String
+  sizeBytes       Int
+  createdByUserId String?
+  createdAt       DateTime                    @default(now())
+  message         WorkOrderMessage            @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdByUser   User?                       @relation("MessageAttachmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  versions        MessageAttachmentVersion[]
+
+  @@index([messageId])
+  @@map("message_attachments")
+}
+
+model MessageAttachmentVersion {
+  id                  String            @id @default(cuid())
+  messageAttachmentId String
+  versionNumber       Int
+  fileName            String
+  storageKey          String
+  mimeType            String
+  sizeBytes           Int
+  createdByUserId     String?
+  createdAt           DateTime          @default(now())
+  attachment          MessageAttachment @relation(fields: [messageAttachmentId], references: [id], onDelete: Cascade)
+  createdByUser       User?             @relation("MessageAttachmentVersionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([messageAttachmentId, versionNumber])
+  @@index([messageAttachmentId, createdAt])
+  @@map("message_attachment_versions")
+}
+
+model MessageMention {
+  id               String           @id @default(cuid())
+  messageId        String
+  mentionedUserId  String?
+  mentionedRoleKey String?
+  createdAt        DateTime         @default(now())
+  message          WorkOrderMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mentionedUser    User?            @relation("MessageMentionedUser", fields: [mentionedUserId], references: [id], onDelete: SetNull)
+
+  @@index([messageId])
+  @@index([mentionedUserId])
+  @@map("message_mentions")
+}
+
+model MessageTemplate {
+  id              String                  @id @default(cuid())
+  name            String
+  category        MessageTemplateCategory @default(GENERAL)
+  visibilityScope MessageVisibilityScope
+  messageType     MessageType             @default(COMMENT)
+  subjectTemplate String?
+  bodyTemplate    String
+  variables       Json?
+  isActive        Boolean                 @default(true)
+  archivedAt      DateTime?
+  isSystem        Boolean                 @default(false)
+  createdByUserId String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  createdByUser   User?                   @relation("MessageTemplateCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([category, visibilityScope, isActive])
+  @@map("message_templates")
+}
+
+model MessageEscalation {
+  id                String                     @id @default(cuid())
+  messageId         String
+  escalatedByUserId String?
+  escalatedToUserId String?
+  urgency           MessageUrgency             @default(HIGH)
+  reason            String
+  status            MessageEscalationStatus    @default(OPEN)
+  targetResponseAt  DateTime?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  resolvedAt        DateTime?
+  resolvedByUserId  String?
+  message           WorkOrderMessage           @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  escalatedByUser   User?                      @relation("MessageEscalatedBy", fields: [escalatedByUserId], references: [id], onDelete: SetNull)
+  escalatedToUser   User?                      @relation("MessageEscalatedTo", fields: [escalatedToUserId], references: [id], onDelete: SetNull)
+  resolvedByUser    User?                      @relation("MessageEscalationResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  comments          MessageEscalationComment[]
+
+  @@index([messageId, status])
+  @@index([escalatedToUserId, status])
+  @@map("message_escalations")
+}
+
+model MessageEscalationComment {
+  id              String            @id @default(cuid())
+  escalationId    String
+  body            String
+  createdByUserId String?
+  createdAt       DateTime          @default(now())
+  escalation      MessageEscalation @relation(fields: [escalationId], references: [id], onDelete: Cascade)
+  createdByUser   User?             @relation("MessageEscalationCommentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([escalationId, createdAt])
+  @@map("message_escalation_comments")
+}
+
+model MessageThreadBlock {
+  id              String        @id @default(cuid())
+  messageThreadId String
+  userId          String
+  createdAt       DateTime      @default(now())
+  messageThread   MessageThread @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageThreadId, userId])
+  @@index([userId, createdAt])
+  @@map("message_thread_blocks")
+}
+
+model SupportTicket {
+  id               String                 @id @default(cuid())
+  ticketNumber     String                 @unique
+  subject          String
+  description      String
+  status           SupportTicketStatus    @default(OPEN)
+  priority         SupportTicketPriority  @default(MEDIUM)
+  createdByUserId  String
+  assignedToUserId String?
+  closedByUserId   String?
+  closedAt         DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  createdByUser    User                   @relation("SupportTicketCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  assignedToUser   User?                  @relation("SupportTicketAssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  closedByUser     User?                  @relation("SupportTicketClosedBy", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  comments         SupportTicketComment[]
+
+  @@index([createdByUserId, status, updatedAt])
+  @@index([assignedToUserId, status, updatedAt])
+  @@index([status, priority, updatedAt])
+  @@map("support_tickets")
+}
+
+model SupportTicketComment {
+  id              String        @id @default(cuid())
+  supportTicketId String
+  createdByUserId String
+  body            String
+  isSystem        Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  supportTicket   SupportTicket @relation(fields: [supportTicketId], references: [id], onDelete: Cascade)
+  createdByUser   User          @relation("SupportTicketCommentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([supportTicketId, createdAt])
+  @@index([createdByUserId, createdAt])
+  @@map("support_ticket_comments")
+}
+
+// ============================================
+// OTHER MODELS
+// ============================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workOrderId String?
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+/// File and photo attachments associated with work orders
+model FileAttachment {
+  id            String       @id @default(cuid())
+  url           String
+  key           String       @unique
+  mimeType      String
+  category      FileCategory
+  taskId        String?
+  requirementId String?
+  createdAt     DateTime     @default(now())
+
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+}
+
+/// Invoices generated after approval/QC
+model Invoice {
+  id          String    @id @default(cuid())
+  workOrderId String    @unique
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+
+  clientId String
+  client   User   @relation("ClientInvoices", fields: [clientId], references: [id])
+
+  invoiceNumber    String
+  invoiceDate      DateTime
+  status           InvoiceStatus @default(DRAFT)
+  sentToClientDate DateTime?
+  completeDate     DateTime?
+  noCharge         Boolean       @default(false)
+  clientTotal      Float         @default(0)
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  items           InvoiceItem[]
+  stripeInvoiceId String?
+  stripePaymentId String?
+}
+
+/// Invoice line items
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  item            String
+  qty             Float
+  price           Float
+  total           Float
+  adjPrice        Float   @default(0)
+  discountPercent Float   @default(0)
+  finalTotal      Float
+  comments        String?
+  flatFee         Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

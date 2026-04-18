@@ -11,6 +11,7 @@ const userCreateSchema = z.object({
   role: z.enum(["CLIENT", "CONTRACTOR", "COORDINATOR", "PROCESSOR", "ADMIN"]),
   phone: z.string().optional(),
   company: z.string().optional(),
+  address: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
         role: true,
         phone: true,
         company: true,
+        address: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest) {
         role: validatedData.role,
         phone: validatedData.phone || null,
         company: validatedData.company || null,
+        address: validatedData.address || null,
       },
       select: {
         id: true,
@@ -97,6 +100,7 @@ export async function POST(request: NextRequest) {
         role: true,
         phone: true,
         company: true,
+        address: true,
         createdAt: true,
         updatedAt: true,
       }

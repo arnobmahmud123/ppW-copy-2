@@ -77,7 +77,57 @@ export async function GET(
       }
     })
 
-    return NextResponse.json({ messages })
+    const thread = !taskId && !bidId
+      ? await prisma.messageThread.findFirst({
+          where: { workOrderId },
+          select: {
+            id: true,
+            messages: {
+              orderBy: { createdAt: "asc" },
+              select: {
+                id: true,
+                body: true,
+                authorType: true,
+                messageType: true,
+                visibilityScope: true,
+                createdAt: true,
+                updatedAt: true,
+                createdByUserId: true,
+                createdByUser: {
+                  select: {
+                    id: true,
+                    name: true,
+                    avatarUrl: true,
+                    role: true,
+                  }
+                },
+                attachments: {
+                  select: {
+                    id: true,
+                    fileName: true,
+                    mimeType: true,
+                  }
+                },
+              }
+            }
+          }
+        })
+      : null
+
+    return NextResponse.json({
+      threadId: thread?.id ?? null,
+      messages,
+      threadedMessages:
+        thread?.messages.map((message) => ({
+          ...message,
+          attachments: (message.attachments ?? []).map((attachment) => ({
+            ...attachment,
+            isImage:
+              attachment.mimeType?.startsWith("image/") ||
+              /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(attachment.fileName),
+          })),
+        })) ?? [],
+    })
   } catch (error) {
     console.error("Error fetching messages:", error)
     return NextResponse.json(

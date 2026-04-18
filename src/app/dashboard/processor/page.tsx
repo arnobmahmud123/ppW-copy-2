@@ -59,9 +59,9 @@ export default function ProcessorDashboard() {
         
         // Calculate stats
         const total = processorWorkOrders.length
-        const assigned = processorWorkOrders.filter(order => order.status === "ASSIGNED").length
-        const inProgress = processorWorkOrders.filter(order => order.status === "IN_PROGRESS").length
-        const completed = processorWorkOrders.filter(order => order.status === "COMPLETED").length
+        const assigned = processorWorkOrders.filter((order: WorkOrder) => order.status === "ASSIGNED").length
+        const inProgress = processorWorkOrders.filter((order: WorkOrder) => order.status === "IN_PROGRESS").length
+        const completed = processorWorkOrders.filter((order: WorkOrder) => order.status === "COMPLETED").length
         
         setStats({ total, assigned, inProgress, completed })
       }

@@ -1,5 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
+import AzureADProvider from "next-auth/providers/azure-ad"
 import bcrypt from "bcrypt"
 import { PrismaClient } from "@/generated/prisma"
 
@@ -43,11 +45,32 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
-          phone: user.phone,
-          company: user.company,
+          phone: user.phone ?? undefined,
+          company: user.company ?? undefined,
+          avatarUrl: user.avatarUrl ?? null,
         }
       }
     })
+    ,
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
+    ...(process.env.AZURE_AD_CLIENT_ID &&
+    process.env.AZURE_AD_CLIENT_SECRET &&
+    process.env.AZURE_AD_TENANT_ID
+      ? [
+          AzureADProvider({
+            clientId: process.env.AZURE_AD_CLIENT_ID,
+            clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+            tenantId: process.env.AZURE_AD_TENANT_ID,
+          }),
+        ]
+      : [])
   ],
   session: {
     strategy: "jwt"
@@ -55,24 +78,27 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        const authUser = user as typeof user & { avatarUrl?: string | null }
         token.role = user.role
         token.phone = user.phone
         token.company = user.company
+        token.avatarUrl = authUser.avatarUrl ?? null
       }
       return token
     },
     async session({ session, token }) {
       if (token) {
+        const sessionUser = session.user as typeof session.user & { avatarUrl?: string | null }
         session.user.id = token.sub!
         session.user.role = token.role as string
         session.user.phone = token.phone as string
         session.user.company = token.company as string
+        sessionUser.avatarUrl = token.avatarUrl as string | null
       }
       return session
     }
   },
   pages: {
-    signIn: "/auth/signin",
-    signUp: "/auth/signup"
+    signIn: "/auth/signin"
   }
 }

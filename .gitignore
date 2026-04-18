@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+dev.db
+*.db
+fix_jsx.py
 
 # debug
 npm-debug.log*
@@ -41,3 +44,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# local runtime assets
+/public/uploads/

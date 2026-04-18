@@ -9,6 +9,7 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   phone: z.string().optional(),
   company: z.string().optional(),
+  address: z.string().optional(),
   role: z.enum(["CLIENT", "CONTRACTOR"]),
 })
 
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
         hashedPassword,
         phone: validatedData.phone,
         company: validatedData.company,
+        address: validatedData.address,
         role: validatedData.role,
       },
     })

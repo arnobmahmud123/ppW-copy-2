@@ -64,21 +64,21 @@ export default function Contact() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="marketing-shell">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="marketing-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-blue-600">PropertyPreserve Pro</Link>
+              <Link href="/" className="text-2xl font-bold text-white">PropertyPreserve Pro</Link>
             </div>
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
-                <Link href="/" className="text-gray-500 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</Link>
-                <Link href="/services" className="text-gray-500 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Services</Link>
-                <Link href="/about" className="text-gray-500 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">About</Link>
-                <Link href="/contact" className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Contact</Link>
-                <Link href="/auth/signin" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium">Sign In</Link>
+                <Link href="/" className="px-3 py-2 text-sm font-medium text-[#a8b0d1] hover:text-white">Home</Link>
+                <Link href="/services" className="px-3 py-2 text-sm font-medium text-[#a8b0d1] hover:text-white">Services</Link>
+                <Link href="/about" className="px-3 py-2 text-sm font-medium text-[#a8b0d1] hover:text-white">About</Link>
+                <Link href="/contact" className="px-3 py-2 text-sm font-medium text-white">Contact</Link>
+                <Link href="/auth/signin" className="brand-button px-4 py-2 text-sm font-medium">Sign In</Link>
               </div>
             </div>
           </div>
@@ -86,10 +86,10 @@ export default function Contact() {
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+      <section className="py-20 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">Contact Us</h1>
-          <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+          <p className="mx-auto max-w-3xl text-xl text-[#c6d1f0]">
             Get in touch with our team for property preservation services or support.
           </p>
         </div>
@@ -101,16 +101,16 @@ export default function Contact() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+              <h2 className="mb-6 text-3xl font-bold text-white">Send us a Message</h2>
               
               {submitStatus === "success" && (
-                <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md mb-6">
+                <div className="mb-6 rounded-2xl border border-[#22453a] bg-[#193329] px-4 py-3 text-[#8ce8b1]">
                   Thank you for your message! We'll get back to you within 24 hours.
                 </div>
               )}
               
               {submitStatus === "error" && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6">
+                <div className="mb-6 rounded-2xl border border-[#5a2f35] bg-[#3b2228] px-4 py-3 text-[#ffb1bc]">
                   There was an error sending your message. Please try again or call us directly.
                 </div>
               )}
@@ -118,7 +118,7 @@ export default function Contact() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="name" className="mb-2 block text-sm font-medium text-[#dce5ff]">
                       Full Name *
                     </label>
                     <input
@@ -128,12 +128,12 @@ export default function Contact() {
                       required
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="brand-input px-4 py-3"
                       placeholder="Your full name"
                     />
                   </div>
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#dce5ff]">
                       Email Address *
                     </label>
                     <input
@@ -143,7 +143,7 @@ export default function Contact() {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="brand-input px-4 py-3"
                       placeholder="your@email.com"
                     />
                   </div>
@@ -151,7 +151,7 @@ export default function Contact() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="phone" className="mb-2 block text-sm font-medium text-[#dce5ff]">
                       Phone Number
                     </label>
                     <input
@@ -160,12 +160,12 @@ export default function Contact() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="brand-input px-4 py-3"
                       placeholder="(555) 123-4567"
                     />
                   </div>
                   <div>
-                    <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="company" className="mb-2 block text-sm font-medium text-[#dce5ff]">
                       Company
                     </label>
                     <input
@@ -174,14 +174,14 @@ export default function Contact() {
                       name="company"
                       value={formData.company}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="brand-input px-4 py-3"
                       placeholder="Your company name"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="serviceType" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="serviceType" className="mb-2 block text-sm font-medium text-[#dce5ff]">
                     Service Needed
                   </label>
                   <select
@@ -189,7 +189,7 @@ export default function Contact() {
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="brand-input px-4 py-3"
                   >
                     <option value="">Select a service</option>
                     <option value="grass-cut">Grass Cutting</option>
@@ -203,7 +203,7 @@ export default function Contact() {
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="message" className="mb-2 block text-sm font-medium text-[#dce5ff]">
                     Message *
                   </label>
                   <textarea
@@ -213,7 +213,7 @@ export default function Contact() {
                     required
                     value={formData.message}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="brand-input px-4 py-3"
                     placeholder="Tell us about your property preservation needs..."
                   />
                 </div>
@@ -221,7 +221,7 @@ export default function Contact() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="brand-button flex w-full items-center justify-center px-6 py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     "Sending..."
@@ -237,7 +237,7 @@ export default function Contact() {
 
             {/* Contact Information */}
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Get in Touch</h2>
+              <h2 className="mb-6 text-3xl font-bold text-white">Get in Touch</h2>
               
               <div className="space-y-8">
                 <div className="flex items-start">

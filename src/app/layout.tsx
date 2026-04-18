@@ -1,13 +1,12 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { SessionProvider } from "@/components/SessionProvider"
-
-const inter = Inter({ subsets: ["latin"] })
+import { AppRuntime } from "@/components/app-runtime"
 
 export const metadata: Metadata = {
   title: "Property Preservation Pro",
   description: "Professional property preservation services across Missouri, Arkansas, and Alaska",
+  applicationName: "Property Preservation Pro",
 }
 
 export default function RootLayout({
@@ -17,8 +16,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="site-chat-theme antialiased" suppressHydrationWarning>
         <SessionProvider>
+          <AppRuntime />
           {children}
         </SessionProvider>
       </body>

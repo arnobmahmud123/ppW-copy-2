@@ -1,8 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f8f4ff;
+  --foreground: #2b3159;
+  --foreground-soft: #46527f;
+  --surface: #ffffff;
+  --surface-2: #fcf9ff;
+  --surface-3: #f1f5ff;
+  --surface-4: #fff4fd;
+  --border: rgba(224, 211, 255, 0.84);
+  --border-strong: rgba(203, 184, 250, 0.96);
+  --muted: #7280ad;
+  --muted-strong: #5b6994;
+  --accent: #dc2fe9;
+  --accent-strong: #8564ff;
+  --accent-soft: rgba(220, 47, 233, 0.12);
+  --sky-soft: #eef4ff;
+  --rose-soft: #fff1fb;
+  --success-soft: #eefaf3;
+  --warning-soft: #fff4ea;
+  --danger-soft: #fff1f8;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #140f24;
+  --foreground: #eef2ff;
+  --foreground-soft: #cdd7ff;
+  --surface: #1d1730;
+  --surface-2: #241c3b;
+  --surface-3: #2a2344;
+  --surface-4: #251d36;
+  --border: rgba(109, 98, 155, 0.82);
+  --border-strong: rgba(157, 145, 214, 0.92);
+  --muted: #a5afd8;
+  --muted-strong: #c7d1f3;
+  --accent: #ff80df;
+  --accent-strong: #94a8ff;
+  --accent-soft: rgba(255, 128, 223, 0.16);
+  --sky-soft: #1f2c4f;
+  --rose-soft: #3e2340;
+  --success-soft: #173127;
+  --warning-soft: #3c2d1d;
+  --danger-soft: #3d202c;
 }
 
 @theme inline {
@@ -12,15 +53,2176 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(255, 180, 228, 0.28), transparent 24%),
+    radial-gradient(circle at top right, rgba(176, 197, 255, 0.22), transparent 24%),
+    radial-gradient(circle at 50% 0%, rgba(222, 188, 255, 0.18), transparent 30%),
+    linear-gradient(180deg, #fffdfd 0%, #faf5ff 46%, #f1f4ff 100%);
+}
+
+html[data-theme="dark"] {
+  background:
+    radial-gradient(circle at top left, rgba(255, 110, 212, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(108, 145, 255, 0.16), transparent 26%),
+    radial-gradient(circle at 50% 0%, rgba(159, 117, 255, 0.14), transparent 28%),
+    linear-gradient(180deg, #140f24 0%, #17122a 52%, #151a31 100%);
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 180, 228, 0.28), transparent 22%),
+    radial-gradient(circle at top right, rgba(176, 197, 255, 0.22), transparent 24%),
+    radial-gradient(circle at 50% 0%, rgba(222, 188, 255, 0.18), transparent 30%),
+    linear-gradient(180deg, #fffdfd 0%, #faf5ff 44%, #eff3ff 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(255, 110, 212, 0.12), transparent 22%),
+    radial-gradient(circle at top right, rgba(108, 145, 255, 0.14), transparent 24%),
+    radial-gradient(circle at 50% 0%, rgba(159, 117, 255, 0.14), transparent 28%),
+    linear-gradient(180deg, #140f24 0%, #17122a 48%, #151a31 100%);
+}
+
+html[data-density="compact"] body {
+  --app-density-scale: 0.92;
+}
+
+html[data-density="comfortable"] body,
+body {
+  --app-density-scale: 1;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+@keyframes app-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes app-soft-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes app-glisten {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.app-animate-in {
+  animation: app-fade-up 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-animate-soft {
+  animation: app-fade-in 220ms ease;
+}
+
+.app-hover-lift {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.app-hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.app-glass-sheen {
+  background-size: 180% 180%;
+  animation: app-glisten 6s linear infinite alternate;
+}
+
+.app-floating-accent {
+  animation: app-soft-float 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-animate-in,
+  .app-animate-soft,
+  .app-floating-accent,
+  .app-glass-sheen {
+    animation: none !important;
+  }
+
+  .app-hover-lift,
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8b97bb;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.22);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(196, 72, 244, 0.18);
+  color: #1c2740;
+}
+
+.app-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(245, 248, 255, 0.96) 100%);
+  border: 1px solid var(--border);
+  box-shadow: 0 22px 70px rgba(136, 152, 199, 0.18);
+}
+
+.app-muted {
+  color: var(--muted);
+}
+
+.marketing-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 155, 224, 0.18), transparent 18%),
+    radial-gradient(circle at top right, rgba(129, 182, 255, 0.18), transparent 18%),
+    linear-gradient(180deg, #fbfcff 0%, #f4f7ff 48%, #edf2ff 100%);
+  color: var(--foreground);
+}
+
+.marketing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 248, 255, 0.92) 100%);
+  box-shadow: 0 18px 48px rgba(140, 155, 198, 0.14);
+  backdrop-filter: blur(18px);
+}
+
+.marketing-card {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 248, 255, 0.98) 100%);
+  box-shadow: 0 18px 44px rgba(136, 152, 199, 0.14);
+}
+
+.marketing-soft {
+  border: 1px solid rgba(198, 208, 236, 0.8);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.marketing-section {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(242, 246, 255, 0.78) 100%);
+}
+
+.brand-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(242, 173, 252, 0.92);
+  background: linear-gradient(135deg, #fff2fb 0%, #f7ecff 52%, #edf4ff 100%);
+  color: #cf26dd;
+  box-shadow: 0 16px 34px rgba(205, 165, 255, 0.22);
+}
+
+.brand-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(220, 214, 255, 0.92);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(241, 246, 255, 0.94) 100%);
+  color: var(--foreground);
+  box-shadow: 0 12px 30px rgba(176, 191, 235, 0.16);
+}
+
+.brand-input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(194, 204, 234, 0.9);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--foreground);
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.brand-input::placeholder {
+  color: #8b97bb;
+}
+
+html[data-theme="dark"] .brand-button {
+  border-color: rgba(161, 134, 255, 0.45);
+  background: linear-gradient(135deg, rgba(73, 40, 102, 0.95) 0%, rgba(48, 62, 112, 0.95) 100%);
+  color: #fff1ff;
+}
+
+html[data-theme="dark"] .brand-button-secondary,
+html[data-theme="dark"] .brand-input,
+html[data-theme="dark"] .app-panel,
+html[data-theme="dark"] .marketing-card,
+html[data-theme="dark"] .marketing-soft,
+html[data-theme="dark"] .marketing-section,
+html[data-theme="dark"] .marketing-nav {
+  background: linear-gradient(180deg, rgba(31, 24, 49, 0.96) 0%, rgba(24, 19, 40, 0.96) 100%);
+  color: var(--foreground);
+  border-color: var(--border);
+  box-shadow: 0 22px 60px rgba(6, 4, 18, 0.34);
+}
+
+.site-chat-theme [class~="border-white/6"],
+.site-chat-theme [class~="border-white/8"],
+.site-chat-theme [class~="border-white/10"],
+.site-chat-theme [class~="border-white/12"],
+.site-chat-theme [class~="border-white/14"],
+.site-chat-theme [class~="border-white/15"],
+.site-chat-theme [class~="border-white/20"] {
+  border-color: rgba(194, 204, 234, 0.88) !important;
+}
+
+.site-chat-theme [class~="bg-white/4"],
+.site-chat-theme [class~="bg-white/5"],
+.site-chat-theme [class~="bg-white/6"],
+.site-chat-theme [class~="bg-white/8"],
+.site-chat-theme [class~="bg-white/10"] {
+  background-color: rgba(255, 255, 255, 0.84) !important;
+}
+
+.site-chat-theme [class~="hover:bg-white/5"]:hover,
+.site-chat-theme [class~="hover:bg-white/6"]:hover,
+.site-chat-theme [class~="hover:bg-white/10"]:hover {
+  background-color: rgba(246, 248, 255, 0.98) !important;
+}
+
+html[data-theme="dark"] .site-chat-theme [class~="border-white/6"],
+html[data-theme="dark"] .site-chat-theme [class~="border-white/8"],
+html[data-theme="dark"] .site-chat-theme [class~="border-white/10"],
+html[data-theme="dark"] .site-chat-theme [class~="border-white/12"],
+html[data-theme="dark"] .site-chat-theme [class~="border-white/14"],
+html[data-theme="dark"] .site-chat-theme [class~="border-white/15"],
+html[data-theme="dark"] .site-chat-theme [class~="border-white/20"] {
+  border-color: rgba(134, 123, 185, 0.72) !important;
+}
+
+html[data-theme="dark"] .site-chat-theme [class~="bg-white/4"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-white/5"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-white/6"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-white/8"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-white/10"] {
+  background-color: rgba(46, 36, 73, 0.82) !important;
+}
+
+html[data-theme="dark"] .site-chat-theme [class~="hover:bg-white/5"]:hover,
+html[data-theme="dark"] .site-chat-theme [class~="hover:bg-white/6"]:hover,
+html[data-theme="dark"] .site-chat-theme [class~="hover:bg-white/10"]:hover {
+  background-color: rgba(59, 47, 92, 0.94) !important;
+}
+
+.site-chat-theme [class~="bg-[#0c1220]"],
+.site-chat-theme [class~="bg-[#151b2c]"],
+.site-chat-theme [class~="bg-[#171d31]"],
+.site-chat-theme [class~="bg-[#1a2134]"],
+.site-chat-theme [class~="bg-[#1b2236]"],
+.site-chat-theme [class~="bg-[#1b2237]"],
+.site-chat-theme [class~="bg-[#1d2438]"],
+.site-chat-theme [class~="bg-[#1f2740]"],
+.site-chat-theme [class~="bg-[#1f2941]"],
+.site-chat-theme [class~="bg-[#202840]"],
+.site-chat-theme [class~="bg-[#202841]"],
+.site-chat-theme [class~="bg-[#202843]"],
+.site-chat-theme [class~="bg-[#212b43]"],
+.site-chat-theme [class~="bg-[#222a41]"],
+.site-chat-theme [class~="bg-[#232b44]"],
+.site-chat-theme [class~="bg-[#242c45]"],
+.site-chat-theme [class~="bg-[#242d46]"],
+.site-chat-theme [class~="bg-[#27304a]"],
+.site-chat-theme [class~="bg-[#27314d]"],
+.site-chat-theme [class~="bg-[#29324d]"],
+.site-chat-theme [class~="bg-[#2a334c]"],
+.site-chat-theme [class~="bg-[#2a3350]"],
+.site-chat-theme [class~="bg-[#2b3553]"],
+.site-chat-theme [class~="bg-[#2c3551]"],
+.site-chat-theme [class~="bg-[#2c3653]"],
+.site-chat-theme [class~="bg-[#2e3858]"],
+.site-chat-theme [class~="bg-[#303954]"],
+.site-chat-theme [class~="bg-[#303a58]"],
+.site-chat-theme [class~="bg-[#313a58]"],
+.site-chat-theme [class~="bg-[#34405f]"],
+.site-chat-theme [class~="bg-[#36405d]"],
+.site-chat-theme [class~="bg-[#384362]"],
+.site-chat-theme [class~="bg-[#384466]"],
+.site-chat-theme [class~="bg-[#39425f]"],
+.site-chat-theme [class~="bg-[#39486d]"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 248, 255, 0.98) 100%) !important;
+}
+
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#0c1220]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#151b2c]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#171d31]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#1a2134]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#1b2236]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#1b2237]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#1d2438]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#1f2740]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#1f2941]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#202840]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#202841]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#202843]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#212b43]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#222a41]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#232b44]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#242c45]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#242d46]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#27304a]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#27314d]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#29324d]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#2a334c]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#2a3350]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#2b3553]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#2c3551]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#2c3653]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#2e3858]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#303954]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#303a58]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#313a58]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#34405f]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#36405d]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#384362]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#384466]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#39425f]"],
+html[data-theme="dark"] .site-chat-theme [class~="bg-[#39486d]"] {
+  background: linear-gradient(180deg, rgba(36, 28, 58, 0.96) 0%, rgba(27, 22, 45, 0.98) 100%) !important;
+  color: #eef2ff !important;
+}
+
+.site-chat-theme [class~="bg-[#2e4475]"],
+.site-chat-theme [class~="bg-[#245f9b]"],
+.site-chat-theme [class~="bg-[#1d4f82]"] {
+  background-color: #e8f1ff !important;
+}
+
+.site-chat-theme [class~="bg-[#22453a]"] {
+  background-color: var(--success-soft) !important;
+}
+
+.site-chat-theme [class~="bg-[#5a4730]"],
+.site-chat-theme [class~="bg-[#5b3a29]"] {
+  background-color: var(--warning-soft) !important;
+}
+
+.site-chat-theme [class~="bg-[#3b2228]"],
+.site-chat-theme [class~="bg-[#5a2f35]"] {
+  background-color: var(--danger-soft) !important;
+}
+
+.site-chat-theme [class~="bg-[#7da2ff]"],
+.site-chat-theme [class~="bg-[#8fb0ff]"] {
+  background-color: #dce9ff !important;
+}
+
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#ff7a49_0%,#ff6b3c_100%)]"],
+.site-chat-theme [class*="bg-[linear-gradient(135deg,#ff7a49_0%,#ff5e2a_100%)]"] {
+  background: linear-gradient(135deg, #ffe7f8 0%, #ece1ff 56%, #dcebff 100%) !important;
+  color: #24324a !important;
+  box-shadow: 0 14px 30px rgba(172, 133, 255, 0.16) !important;
+}
+
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#d8a83a_0%,#b9851f_100%)]"] {
+  background: linear-gradient(135deg, #ffe9b8 0%, #ffd3ef 100%) !important;
+  box-shadow: 0 14px 30px rgba(240, 196, 123, 0.18) !important;
+}
+
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#4b7ff7_0%,#3468e8_100%)]"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#3f84ff_0%,#2f6ee6_100%)]"],
+.site-chat-theme [class*="bg-[linear-gradient(135deg,#5b6ef7_0%,#4154e8_100%)]"] {
+  background: linear-gradient(135deg, #dfeaff 0%, #e8ddff 100%) !important;
+  box-shadow: 0 14px 30px rgba(137, 164, 255, 0.18) !important;
+}
+
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#46b96f_0%,#2f9a57_100%)]"] {
+  background: linear-gradient(135deg, #e7fbef 0%, #e7fff8 100%) !important;
+  box-shadow: 0 14px 30px rgba(94, 181, 125, 0.16) !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td
+)[class~="text-white"] {
+  color: var(--foreground) !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#edf2ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#dce5ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#dce6ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#dfe3f5]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#e7eeff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#d9e2ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#dbe4ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#dce4ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#c9d3f2]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#c9d4f6]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#bfd3ff]"] {
+  color: var(--foreground) !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#9aa6cc]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#8f98bc]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#91a1c9]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#97a5ce]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#8090ba]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#8f9bc4]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#7f8ab0]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#7f8bb1]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#8e97bd]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#a8b0d1]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#aab4d6]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#aeb7d8]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class~="text-[#b4bbd5]"] {
+  color: var(--muted) !important;
+}
+
+.site-chat-theme [class~="text-[#ff8a57]"],
+.site-chat-theme [class~="text-[#ff9b70]"],
+.site-chat-theme [class~="text-[#ff8a6a]"],
+.site-chat-theme [class~="text-[#ffb487]"],
+.site-chat-theme [class~="text-[#ffd08a]"] {
+  color: #8f39e8 !important;
+}
+
+.site-chat-theme [class~="text-[#7da2ff]"],
+.site-chat-theme [class~="text-[#8fb0ff]"],
+.site-chat-theme [class~="text-[#a9c0ff]"] {
+  color: #4f72e8 !important;
+}
+
+.site-chat-theme [class~="text-[#57d2a6]"],
+.site-chat-theme [class~="text-[#7ee0a6]"],
+.site-chat-theme [class~="text-[#8ce8b1]"] {
+  color: #1f9a68 !important;
+}
+
+.site-chat-theme [class~="border-[#ff6b3c]"],
+.site-chat-theme [class~="border-[#ff7a49]"],
+.site-chat-theme [class~="border-[#ff8a6a]"] {
+  border-color: rgba(190, 122, 255, 0.52) !important;
+}
+
+.site-chat-theme [class~="border-[#7da2ff]"],
+.site-chat-theme [class~="border-[#8fb0ff]"] {
+  border-color: rgba(125, 162, 255, 0.42) !important;
+}
+
+.site-chat-theme [class*="bg-[#0"],
+.site-chat-theme [class*="bg-[#1"],
+.site-chat-theme [class*="bg-[#2"],
+.site-chat-theme [class*="bg-[#3"],
+.site-chat-theme [class*="bg-[#4"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 248, 255, 0.98) 100%) !important;
+  border-color: rgba(194, 204, 234, 0.88) !important;
+}
+
+.site-chat-theme [class*="bg-[linear-gradient(180deg,rgba(29,35,55"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,rgba(34,41,63"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#1b2236"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#232c46"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#242c45"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#29324e"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#232c46"],
+.site-chat-theme [class*="bg-[linear-gradient(180deg,#202843"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 248, 255, 0.98) 100%) !important;
+  border-color: rgba(194, 204, 234, 0.88) !important;
+  color: var(--foreground) !important;
+}
+
+.site-chat-theme [class*="bg-[#22453a]"],
+.site-chat-theme [class*="bg-[#23443b]"],
+.site-chat-theme [class*="bg-[#285442]"],
+.site-chat-theme [class*="bg-[#193329]"] {
+  background: var(--success-soft) !important;
+}
+
+.site-chat-theme [class*="bg-[#5a4730]"],
+.site-chat-theme [class*="bg-[#5b3a29]"],
+.site-chat-theme [class*="bg-[#6a4720]"] {
+  background: var(--warning-soft) !important;
+}
+
+.site-chat-theme [class*="bg-[#5a2f35]"],
+.site-chat-theme [class*="bg-[#3b2228]"],
+.site-chat-theme [class*="bg-[#5a2027]"],
+.site-chat-theme [class*="bg-[#7a2f1f]"] {
+  background: var(--danger-soft) !important;
+}
+
+.site-chat-theme [class*="bg-[#245f9b]"],
+.site-chat-theme [class*="bg-[#1d4f82]"],
+.site-chat-theme [class*="bg-[#355188]"],
+.site-chat-theme [class*="bg-[#2e4475]"] {
+  background: #e8f1ff !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-white"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#edf2ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#dce5ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#dfe6ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#dce6ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#d9e2ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#c8d6ff]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#c6d1f0]"] {
+  color: var(--foreground) !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#9aa6cc]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#7f8ab0]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#8f98bc]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#a8b0d1]"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-[#aab4d6]"] {
+  color: var(--muted) !important;
+}
+
+.site-chat-theme [class*="bg-black/"],
+.site-chat-theme [class*="bg-black bg-opacity"],
+.site-chat-theme [class*="bg-slate-950"],
+.site-chat-theme [class*="bg-slate-900"],
+.site-chat-theme [class*="bg-slate-800"],
+.site-chat-theme [class*="bg-zinc-950"],
+.site-chat-theme [class*="bg-zinc-900"],
+.site-chat-theme [class*="bg-zinc-800"],
+.site-chat-theme [class*="bg-neutral-950"],
+.site-chat-theme [class*="bg-neutral-900"],
+.site-chat-theme [class*="bg-neutral-800"],
+.site-chat-theme [class*="bg-gray-950"],
+.site-chat-theme [class*="bg-gray-900"],
+.site-chat-theme [class*="bg-gray-800"],
+.site-chat-theme [class*="from-slate-950"],
+.site-chat-theme [class*="from-slate-900"],
+.site-chat-theme [class*="from-slate-800"],
+.site-chat-theme [class*="to-slate-950"],
+.site-chat-theme [class*="to-slate-900"],
+.site-chat-theme [class*="to-slate-800"],
+.site-chat-theme [class*="from-zinc-950"],
+.site-chat-theme [class*="from-zinc-900"],
+.site-chat-theme [class*="from-zinc-800"],
+.site-chat-theme [class*="to-zinc-950"],
+.site-chat-theme [class*="to-zinc-900"],
+.site-chat-theme [class*="to-zinc-800"],
+.site-chat-theme [class*="from-neutral-950"],
+.site-chat-theme [class*="from-neutral-900"],
+.site-chat-theme [class*="from-neutral-800"],
+.site-chat-theme [class*="to-neutral-950"],
+.site-chat-theme [class*="to-neutral-900"],
+.site-chat-theme [class*="to-neutral-800"],
+.site-chat-theme [class*="from-gray-950"],
+.site-chat-theme [class*="from-gray-900"],
+.site-chat-theme [class*="from-gray-800"],
+.site-chat-theme [class*="to-gray-950"],
+.site-chat-theme [class*="to-gray-900"],
+.site-chat-theme [class*="to-gray-800"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 244, 255, 0.97) 52%, rgba(239, 244, 255, 0.97) 100%) !important;
+  border-color: rgba(224, 211, 255, 0.88) !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-white/"] {
+  color: var(--foreground) !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-slate-1"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-gray-1"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-zinc-1"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-neutral-1"] {
+  color: var(--foreground) !important;
+}
+
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-slate-4"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-slate-5"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-gray-4"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-gray-5"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-zinc-4"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-zinc-5"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-neutral-4"],
+.site-chat-theme :is(
+  div,
+  section,
+  article,
+  aside,
+  header,
+  footer,
+  main,
+  nav,
+  p,
+  span,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  label,
+  li,
+  dt,
+  dd,
+  small,
+  th,
+  td,
+  button,
+  input,
+  textarea,
+  select
+)[class*="text-neutral-5"] {
+  color: var(--muted) !important;
+}
+
+.site-chat-theme [class*="border-slate-"],
+.site-chat-theme [class*="border-gray-"],
+.site-chat-theme [class*="border-zinc-"],
+.site-chat-theme [class*="border-neutral-"] {
+  border-color: rgba(224, 211, 255, 0.9) !important;
+}
+
+.site-chat-theme :is(button, a)[class~="bg-blue-600"],
+.site-chat-theme :is(button, a)[class~="bg-blue-700"],
+.site-chat-theme :is(button, a)[class~="bg-indigo-600"],
+.site-chat-theme :is(button, a)[class~="bg-indigo-700"],
+.site-chat-theme :is(button, a)[class~="bg-purple-600"],
+.site-chat-theme :is(button, a)[class~="bg-purple-700"],
+.site-chat-theme :is(button, a)[class*="bg-[linear-gradient(180deg,#ff7a49_0%,#ff6b3c_100%)]"],
+.site-chat-theme :is(button, a)[class*="bg-[linear-gradient(135deg,#ff7a49_0%,#ff5e2a_100%)]"] {
+  border: 1px solid rgba(242, 173, 252, 0.92) !important;
+  background: linear-gradient(135deg, #fff2fb 0%, #f7ebff 52%, #edf4ff 100%) !important;
+  color: #cf26dd !important;
+  box-shadow: 0 14px 30px rgba(205, 165, 255, 0.22) !important;
+}
+
+.site-chat-theme :is(button, a)[class~="bg-red-600"],
+.site-chat-theme :is(button, a)[class~="bg-red-700"] {
+  border: 1px solid rgba(255, 196, 216, 0.92) !important;
+  background: linear-gradient(135deg, #fff3f7 0%, #ffe8f1 100%) !important;
+  color: #d0417a !important;
+  box-shadow: 0 14px 30px rgba(239, 170, 196, 0.2) !important;
+}
+
+.site-chat-theme :is(button, a)[class~="bg-green-600"],
+.site-chat-theme :is(button, a)[class~="bg-green-700"] {
+  border: 1px solid rgba(186, 232, 205, 0.96) !important;
+  background: linear-gradient(135deg, #effcf4 0%, #e8fff7 100%) !important;
+  color: #168658 !important;
+  box-shadow: 0 14px 30px rgba(148, 214, 175, 0.18) !important;
+}
+
+.site-chat-theme :is(button, a)[class~="bg-yellow-600"],
+.site-chat-theme :is(button, a)[class~="bg-yellow-700"],
+.site-chat-theme :is(button, a)[class~="bg-orange-500"],
+.site-chat-theme :is(button, a)[class~="bg-orange-600"] {
+  border: 1px solid rgba(255, 220, 173, 0.96) !important;
+  background: linear-gradient(135deg, #fff7ea 0%, #fff0f8 100%) !important;
+  color: #b96b10 !important;
+  box-shadow: 0 14px 30px rgba(245, 199, 142, 0.2) !important;
+}
+
+.site-chat-theme :is(button, a)[class~="bg-white"],
+.site-chat-theme :is(button, a)[class~="bg-gray-50"],
+.site-chat-theme :is(button, a)[class~="bg-slate-50"] {
+  border-color: rgba(224, 211, 255, 0.92) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 246, 255, 0.96) 100%) !important;
+  box-shadow: 0 12px 26px rgba(176, 191, 235, 0.14) !important;
 }

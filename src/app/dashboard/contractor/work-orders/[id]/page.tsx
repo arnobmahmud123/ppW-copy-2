@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import PhotoEditorModal from "@/components/PhotoEditorModal"
 import { 
   ArrowLeft,
   MapPin,
@@ -86,6 +87,15 @@ interface WorkOrder {
     messages: number
     files: number
   }
+  files?: Array<{
+    id: string
+    url: string
+    mimeType: string
+    category: string
+    createdAt?: string
+    taskId?: string | null
+    requirementId?: string | null
+  }>
 }
 
 interface Message {
@@ -138,7 +148,16 @@ export default function ContractorWorkOrderDetails() {
   const [files, setFiles] = useState<any[]>([])
   const [uploadingFile, setUploadingFile] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>("PHOTO_BEFORE")
-  const [showImageModal, setShowImageModal] = useState<{url: string, title: string} | null>(null)
+  const [selectedUploadTarget, setSelectedUploadTarget] = useState<{ taskId?: string; requirementId?: string } | null>(null)
+  const [photoEditor, setPhotoEditor] = useState<{
+    open: boolean
+    images: { id?: string; url: string; title?: string; category?: string; taskId?: string; requirementId?: string }[]
+    index: number
+  }>({
+    open: false,
+    images: [],
+    index: 0,
+  })
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
@@ -176,12 +195,74 @@ export default function ContractorWorkOrderDetails() {
     }
   }, [showStatusDropdown])
 
+  const mergeFilesIntoTasks = (baseTasks: any[], attachedFiles: any[]) => {
+    if (!Array.isArray(baseTasks)) {
+      return []
+    }
+
+    return baseTasks.map((task) => {
+      const photoRequirements = Array.isArray(task.photoRequirements) ? task.photoRequirements : []
+
+      const nextRequirements = photoRequirements.map((requirement: any) => {
+        const existingUploads = Array.isArray(requirement.uploads) ? requirement.uploads : []
+        const fallbackCategory = getRequirementCategory(requirement.type || "")
+
+        const matchedUploads = attachedFiles
+          .filter((file) => {
+            if (file.requirementId && requirement.id) {
+              return file.requirementId === requirement.id
+            }
+            if (file.taskId && task.id) {
+              return file.taskId === task.id && file.category === fallbackCategory
+            }
+            return file.category === fallbackCategory
+          })
+          .map((file) => ({
+            id: file.id,
+            url: file.url,
+            category: file.category,
+            createdAt: file.createdAt,
+            mimeType: file.mimeType,
+            taskId: file.taskId,
+            requirementId: file.requirementId,
+          }))
+
+        const validExistingUploads = existingUploads.filter((upload: any) => typeof upload?.url === "string" && upload.url.length > 0)
+        const mergedUploads = [...matchedUploads]
+
+        validExistingUploads.forEach((upload: any) => {
+          const uploadKey = upload?.id || upload?.url
+          if (!uploadKey) {
+            return
+          }
+          if (!mergedUploads.some((existing: any) => (existing?.id || existing?.url) === uploadKey)) {
+            mergedUploads.push(upload)
+          }
+        })
+
+        return {
+          ...requirement,
+          uploaded: mergedUploads.length > 0,
+          uploads: mergedUploads,
+          url: mergedUploads[0]?.url || requirement.url,
+        }
+      })
+
+      return {
+        ...task,
+        photoRequirements: nextRequirements,
+      }
+    })
+  }
+
   const fetchWorkOrder = async () => {
     try {
       const response = await fetch(`/api/work-orders/${workOrderId}`)
       if (response.ok) {
         const data = await response.json()
         setWorkOrder(data)
+        setFiles(data.files || [])
+        setTasks((prev) => mergeFilesIntoTasks(prev, data.files || []))
       } else {
         console.error("Failed to fetch work order")
         router.push("/dashboard/contractor")
@@ -212,7 +293,7 @@ export default function ContractorWorkOrderDetails() {
       if (response.ok) {
         const data = await response.json()
         const tasksData = data.tasks || []
-        setTasks(tasksData)
+        setTasks(mergeFilesIntoTasks(tasksData, workOrder?.files || files || []))
         
         // Fetch messages for all tasks to show correct message counts
         for (const task of tasksData) {
@@ -232,9 +313,127 @@ export default function ContractorWorkOrderDetails() {
       if (response.ok) {
         const data = await response.json()
         setFiles(data.files || [])
+        setTasks((prev) => mergeFilesIntoTasks(prev, data.files || []))
       }
     } catch (error) {
       console.error("Error fetching files:", error)
+    }
+  }
+
+  const openPhotoEditor = (categoryFiles: any[], selectedFileId: string) => {
+    const images = categoryFiles
+      .filter((file) => {
+        if (file?.mimeType) {
+          return isImageFile(file.mimeType)
+        }
+        return typeof file?.url === "string"
+      })
+      .map((file) => ({
+        id: file.id,
+        url: file.url,
+        title: `${getCategoryDisplayName(file.category || selectedCategory)} - ${file.createdAt ? new Date(file.createdAt).toLocaleDateString() : "Photo"}`,
+        category: file.category || selectedCategory,
+        taskId: file.taskId,
+        requirementId: file.requirementId,
+      }))
+
+    const nextIndex = Math.max(
+      images.findIndex((image) => image.id === selectedFileId),
+      0
+    )
+
+    setPhotoEditor({
+      open: true,
+      images,
+      index: nextIndex,
+    })
+  }
+
+  const saveEditedPhoto = async (blob: Blob, image: { id?: string; url: string; title?: string; category?: string; taskId?: string; requirementId?: string }) => {
+    const formData = new FormData()
+    const safeName = (image.title || "edited-photo").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase()
+    formData.append("file", new window.File([blob], `${safeName || "edited-photo"}-edited.png`, { type: "image/png" }))
+
+    const response = image.id
+      ? await fetch(`/api/upload/${image.id}`, {
+          method: "PUT",
+          body: formData,
+        })
+      : await (async () => {
+          formData.append("workOrderId", workOrderId)
+          formData.append("category", image.category || selectedCategory)
+          if (image.taskId) {
+            formData.append("taskId", image.taskId)
+          }
+          if (image.requirementId) {
+            formData.append("requirementId", image.requirementId)
+          }
+          return fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          })
+        })()
+
+    if (!response.ok) {
+      throw new Error("Failed to save edited photo")
+    }
+
+    const data = await response.json()
+    const updatedFile = {
+      id: data?.fileAttachment?.id || image.id,
+      url: data?.fileAttachment?.url || image.url,
+      mimeType: data?.fileAttachment?.mimeType || "image/png",
+      category: data?.fileAttachment?.category || image.category || selectedCategory,
+      taskId: image.taskId ?? null,
+      requirementId: image.requirementId ?? null,
+    }
+
+    setFiles((prev) =>
+      prev.some((file) => file.id === updatedFile.id)
+        ? prev.map((file) => (file.id === updatedFile.id ? { ...file, ...updatedFile } : file))
+        : [updatedFile, ...prev]
+    )
+    setTasks((prev) =>
+      mergeFilesIntoTasks(
+        prev.map((task) => ({
+          ...task,
+          photoRequirements: Array.isArray(task.photoRequirements)
+            ? task.photoRequirements.map((requirement: any) => ({
+                ...requirement,
+                uploads: Array.isArray(requirement.uploads)
+                  ? requirement.uploads.map((upload: any) =>
+                      upload?.id === updatedFile.id ? { ...upload, ...updatedFile } : upload
+                    )
+                  : [],
+              }))
+            : task.photoRequirements,
+        })),
+        files.some((file) => file.id === updatedFile.id)
+          ? files.map((file) => (file.id === updatedFile.id ? { ...file, ...updatedFile } : file))
+          : [updatedFile, ...files]
+      )
+    )
+    setWorkOrder((prev) =>
+      prev
+        ? {
+            ...prev,
+            files: Array.isArray(prev.files)
+              ? prev.files.some((file) => file.id === updatedFile.id)
+                ? prev.files.map((file) => (file.id === updatedFile.id ? { ...file, ...updatedFile } : file))
+                : [updatedFile as any, ...prev.files]
+              : [updatedFile as any],
+          }
+        : prev
+    )
+    await fetchFiles()
+    await fetchWorkOrder()
+    return {
+      id: updatedFile.id,
+      url: updatedFile.url,
+      title: image.title,
+      category: updatedFile.category,
+      taskId: image.taskId,
+      requirementId: image.requirementId,
     }
   }
 
@@ -418,6 +617,65 @@ export default function ContractorWorkOrderDetails() {
     }
   }
 
+  const isBidTask = (task: any) => task?.taskType === "Bid" || String(task?.taskName || "").includes("(Bid)")
+  const visibleTaskRows = tasks.filter((task) => !isBidTask(task))
+  const visibleTaskContractorTotal = visibleTaskRows.reduce((sum, task) => sum + ((task.contractorPrice || 0) * (task.qty || 1)), 0)
+  const visibleTaskClientTotal = visibleTaskRows.reduce((sum, task) => sum + ((task.clientPrice || 0) * (task.qty || 1)), 0)
+
+  const getRequirementCategory = (type: string) => {
+    switch (type) {
+      case "BEFORE":
+        return "PHOTO_BEFORE"
+      case "DURING":
+        return "PHOTO_DURING"
+      case "AFTER":
+        return "PHOTO_AFTER"
+      case "BID":
+        return "PHOTO_BID"
+      case "INSPECTION":
+        return "PHOTO_INSPECTION"
+      default:
+        return "OTHER"
+    }
+  }
+
+  const getRequirementUploads = (task: any, requirement: any) => {
+    const category = getRequirementCategory(requirement?.type || "")
+    const liveUploads = files.filter((file) => {
+      if (file.requirementId && requirement?.id) {
+        return file.requirementId === requirement.id
+      }
+      if (file.taskId && task?.id) {
+        return file.taskId === task.id && file.category === category
+      }
+      return file.category === category
+    })
+
+    const embeddedUploads = Array.isArray(requirement?.uploads)
+      ? requirement.uploads
+          .filter((upload: any) => typeof upload?.url === "string" && upload.url.length > 0)
+          .map((upload: any) => ({
+            ...upload,
+            category: upload?.category || category,
+            taskId: upload?.taskId || task?.id,
+            requirementId: upload?.requirementId || requirement?.id,
+          }))
+      : []
+
+    const mergedUploads = [...liveUploads]
+    embeddedUploads.forEach((upload: any) => {
+      const uploadKey = upload?.id || upload?.url
+      if (!uploadKey) {
+        return
+      }
+      if (!mergedUploads.some((existing: any) => (existing?.id || existing?.url) === uploadKey)) {
+        mergedUploads.push(upload)
+      }
+    })
+
+    return mergedUploads
+  }
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -428,6 +686,12 @@ export default function ContractorWorkOrderDetails() {
       formData.append("file", file)
       formData.append("workOrderId", workOrderId)
       formData.append("category", selectedCategory)
+      if (selectedUploadTarget?.taskId) {
+        formData.append("taskId", selectedUploadTarget.taskId)
+      }
+      if (selectedUploadTarget?.requirementId) {
+        formData.append("requirementId", selectedUploadTarget.requirementId)
+      }
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -437,6 +701,7 @@ export default function ContractorWorkOrderDetails() {
       if (response.ok) {
         await fetchFiles() // Refresh files list
         await fetchWorkOrder() // Refresh work order to update file count
+        setSelectedUploadTarget(null)
         // Reset file input
         event.target.value = ""
       } else {
@@ -1043,11 +1308,11 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
               </div>
               
               <div className="p-6">
-                {tasks.length === 0 ? (
+                {visibleTaskRows.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
                     <CheckCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p>No tasks created yet.</p>
-                    <p className="text-sm mt-2">Click "Add Task" to create your first task.</p>
+                    <p>No non-bid tasks to show.</p>
+                    <p className="text-sm mt-2">Bid rows remain in the Bid section only.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -1077,7 +1342,7 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
                         </tr>
                       </thead>
                       <tbody>
-                        {tasks.map((task, index) => (
+                        {visibleTaskRows.map((task, index) => (
                           <tr key={task.id || index}>
                             <td className="border border-gray-300 px-3 py-2">
                               {canEditTask(task) ? (
@@ -1271,13 +1536,13 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
                       <tfoot>
                         <tr className="bg-gray-50">
                           <td colSpan={3} className="border border-gray-300 px-3 py-2 font-medium">
-                            Count {tasks.length}
+                            Count {visibleTaskRows.length}
                           </td>
                           <td className="border border-gray-300 px-3 py-2 text-right font-medium">
-                            ${tasks.reduce((sum, task) => sum + ((task.contractorPrice || 0) * (task.qty || 1)), 0).toFixed(2)}
+                            ${visibleTaskContractorTotal.toFixed(2)}
                           </td>
                           <td className="border border-gray-300 px-3 py-2 text-right font-medium">
-                            ${tasks.reduce((sum, task) => sum + ((task.clientPrice || 0) * (task.qty || 1)), 0).toFixed(2)}
+                            ${visibleTaskClientTotal.toFixed(2)}
                           </td>
                           <td colSpan={2} className="border border-gray-300 px-3 py-2"></td>
                         </tr>
@@ -1567,6 +1832,98 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
 
         {activeTab === "files" && (
           <div className="space-y-6">
+            {tasks.length > 0 && tasks.some((task) => Array.isArray(task.photoRequirements) && task.photoRequirements.length > 0) && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Task Photo Buckets</h3>
+                  <a
+                    href={`/api/work-orders/${workOrderId}/photos/download?scope=all`}
+                    className="text-sm text-blue-600 hover:text-blue-500"
+                  >
+                    Download All (ZIP)
+                  </a>
+                </div>
+
+                <div className="space-y-6">
+                  {tasks
+                    .filter((task) => Array.isArray(task.photoRequirements) && task.photoRequirements.length > 0)
+                    .map((task) => (
+                      <div key={task.id} className="border border-gray-200 rounded-lg">
+                        <div className="px-4 py-3 border-b flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">{getTaskDisplayName(task)}</div>
+                            <div className="text-xs text-gray-500">
+                              {task.photoRequirements.filter((requirement: any) => getRequirementUploads(task, requirement).length > 0).length} / {task.photoRequirements.length} uploaded
+                            </div>
+                          </div>
+                          <a
+                            href={`/api/work-orders/${workOrderId}/photos/download?scope=task&taskId=${task.id}`}
+                            className="text-sm text-blue-600 hover:text-blue-500"
+                          >
+                            Download Task (ZIP)
+                          </a>
+                        </div>
+
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {task.photoRequirements.map((requirement: any) => {
+                            const uploads = getRequirementUploads(task, requirement)
+
+                            return (
+                              <div
+                                key={requirement.id}
+                                className={`p-3 rounded-lg border-2 ${
+                                  uploads.length > 0
+                                    ? "border-green-200 bg-green-50"
+                                    : "border-dashed border-gray-300 bg-gray-50"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <div>
+                                    <div className="font-medium text-sm text-gray-900">{requirement.label}</div>
+                                    <div className="text-xs text-gray-500">
+                                      {uploads.length > 0 ? `${uploads.length} uploaded` : "No uploads yet"}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCategory(getRequirementCategory(requirement.type))
+                                      setSelectedUploadTarget({
+                                        taskId: task.id,
+                                        requirementId: requirement.id,
+                                      })
+                                    }}
+                                    className="text-blue-600 hover:text-blue-500 text-sm"
+                                  >
+                                    Upload
+                                  </button>
+                                </div>
+
+                                {uploads.length > 0 && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {uploads.map((upload: any, uploadIndex: number) => (
+                                      <div key={upload.id || upload.url || uploadIndex} className="relative group cursor-pointer" onClick={() => openPhotoEditor(uploads, upload.id)}>
+                                        <img
+                                          src={upload.url}
+                                          alt={requirement.label}
+                                          className="w-full h-24 object-cover rounded"
+                                        />
+                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded">
+                                          <span className="text-white text-xs underline">Edit</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* Upload Section */}
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Upload Files & Photos</h3>
@@ -1578,7 +1935,10 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
                   </label>
                   <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value)
+                      setSelectedUploadTarget(null)
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="PHOTO_BEFORE">Before Photos</option>
@@ -1645,10 +2005,7 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
                               {isImageFile(file.mimeType) ? (
                                 <div 
                                   className="aspect-square bg-gray-100 rounded-lg mb-2 cursor-pointer overflow-hidden"
-                                  onClick={() => setShowImageModal({
-                                    url: file.url,
-                                    title: `${getCategoryDisplayName(file.category)} - ${new Date(file.createdAt).toLocaleDateString()}`
-                                  })}
+                                  onClick={() => openPhotoEditor(categoryFiles, file.id)}
                                 >
                                   <img 
                                     src={file.url} 
@@ -1674,13 +2031,10 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
                               <div className="flex items-center justify-between mt-2 space-x-1">
                                 {isImageFile(file.mimeType) ? (
                                   <button
-                                    onClick={() => setShowImageModal({
-                                      url: file.url,
-                                      title: `${getCategoryDisplayName(file.category)} - ${new Date(file.createdAt).toLocaleDateString()}`
-                                    })}
+                                    onClick={() => openPhotoEditor(categoryFiles, file.id)}
                                     className="flex-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
                                   >
-                                    View
+                                    Edit
                                   </button>
                                 ) : (
                                   <a
@@ -1711,44 +2065,14 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
           </div>
         )}
 
-        {/* Image Modal */}
-        {showImageModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-hidden">
-              <div className="flex justify-between items-center p-4 border-b">
-                <h3 className="text-lg font-medium">{showImageModal.title}</h3>
-                <button
-                  onClick={() => setShowImageModal(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              <div className="p-4">
-                <img 
-                  src={showImageModal.url} 
-                  alt={showImageModal.title}
-                  className="max-w-full max-h-[70vh] object-contain mx-auto"
-                />
-              </div>
-              <div className="flex justify-end space-x-3 p-4 border-t">
-                <a
-                  href={showImageModal.url}
-                  download
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Download
-                </a>
-                <button
-                  onClick={() => setShowImageModal(null)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <PhotoEditorModal
+          open={photoEditor.open}
+          images={photoEditor.images}
+          index={photoEditor.index}
+          onClose={() => setPhotoEditor((prev) => ({ ...prev, open: false }))}
+          onIndexChange={(nextIndex) => setPhotoEditor((prev) => ({ ...prev, index: nextIndex }))}
+          onSave={saveEditedPhoto}
+        />
       </div>
     </div>
   )

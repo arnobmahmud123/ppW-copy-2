@@ -34,6 +34,38 @@ const workOrderSchema = z.object({
   attachments: z.array(z.any()).optional(),
 })
 
+type WorkOrderWithPropertyFields = {
+  id: string
+  addressLine1: string
+  city: string
+  state: string
+}
+
+function buildPropertyHistoryKey(workOrder: WorkOrderWithPropertyFields) {
+  return [
+    workOrder.addressLine1.trim().toLowerCase(),
+    workOrder.city.trim().toLowerCase(),
+    workOrder.state.trim().toLowerCase(),
+  ].join("::")
+}
+
+function attachHistoryCounts<T extends WorkOrderWithPropertyFields>(workOrders: T[]) {
+  const groupedCounts = new Map<string, number>()
+
+  for (const workOrder of workOrders) {
+    const key = buildPropertyHistoryKey(workOrder)
+    groupedCounts.set(key, (groupedCounts.get(key) || 0) + 1)
+  }
+
+  return workOrders.map((workOrder) => {
+    const key = buildPropertyHistoryKey(workOrder)
+    return {
+      ...workOrder,
+      historyCount: Math.max((groupedCounts.get(key) || 1) - 1, 0),
+    }
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -318,7 +350,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json(workOrders)
+    return NextResponse.json(attachHistoryCounts(workOrders))
   } catch (error) {
     console.error("Work orders fetch error:", error)
     return NextResponse.json(

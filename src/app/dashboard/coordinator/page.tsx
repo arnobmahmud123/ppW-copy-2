@@ -59,9 +59,9 @@ export default function CoordinatorDashboard() {
         
         // Calculate stats
         const total = coordinatorWorkOrders.length
-        const assigned = coordinatorWorkOrders.filter(order => order.status === "ASSIGNED").length
-        const inProgress = coordinatorWorkOrders.filter(order => order.status === "IN_PROGRESS").length
-        const completed = coordinatorWorkOrders.filter(order => order.status === "COMPLETED").length
+        const assigned = coordinatorWorkOrders.filter((order: WorkOrder) => order.status === "ASSIGNED").length
+        const inProgress = coordinatorWorkOrders.filter((order: WorkOrder) => order.status === "IN_PROGRESS").length
+        const completed = coordinatorWorkOrders.filter((order: WorkOrder) => order.status === "COMPLETED").length
         
         setStats({ total, assigned, inProgress, completed })
       }

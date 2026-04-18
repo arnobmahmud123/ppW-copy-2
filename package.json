@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma migrate deploy && next build --turbopack",
+    "build": "prisma migrate deploy && npm run seed:demo && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
+    "demo:reset-passwords": "node scripts/reset-demo-passwords.js",
+    "seed:demo": "node prisma/seed.js && node scripts/reset-demo-passwords.js && node prisma/seed-workorders.js && node prisma/seed-channels.js && node prisma/seed-messages.js && node scripts/seed-demo-work-orders.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {

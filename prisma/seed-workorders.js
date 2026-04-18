@@ -46,6 +46,7 @@ async function main() {
   ];
 
   let createdCount = 0;
+  let updatedCount = 0;
   let workOrdersPerProperty = [];
 
   // Create 5 work orders per property = 100 work orders
@@ -56,19 +57,29 @@ async function main() {
     for (let woIndex = 0; woIndex < numWorkOrders; woIndex++) {
       try {
         // Rotate through available resources
-        const client = clients[Math.floor(Math.random() * clients.length)];
-        const contractor = contractors[Math.floor(Math.random() * contractors.length)];
-        const coordinator = coordinators[Math.floor(Math.random() * coordinators.length)];
-        const creator = admins[Math.floor(Math.random() * admins.length)];
+        const sequence = propIndex * 5 + woIndex + 1;
+        const client = clients[(sequence - 1) % clients.length];
+        const contractor = contractors[(sequence - 1) % contractors.length];
+        const coordinator = coordinators[(sequence - 1) % coordinators.length];
+        const creator = admins[(sequence - 1) % admins.length];
 
-        const serviceType = serviceTypes[Math.floor(Math.random() * serviceTypes.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        const serviceType = serviceTypes[(sequence - 1) % serviceTypes.length];
+        const status = statuses[(sequence - 1) % statuses.length];
 
-        // Create work order
-        const workOrder = await prisma.workOrder.create({
-          data: {
+        const workOrderId = `seed_work_order_${String(sequence).padStart(4, "0")}`;
+        const workOrderNumber = `WO-${String(sequence).padStart(4, "0")}`;
+        const dueDate = new Date(Date.UTC(2026, (sequence - 1) % 12, 5 + ((sequence - 1) % 20), 0, 0, 0));
+
+        const existing = await prisma.workOrder.findUnique({
+          where: { id: workOrderId },
+          select: { id: true },
+        });
+
+        const workOrder = await prisma.workOrder.upsert({
+          where: { id: workOrderId },
+          update: {
             title: `${serviceType} at ${property.city} - Property ${propIndex + 1}`,
-            description: `Work order #${propIndex * 5 + woIndex + 1}: ${serviceType} service required at ${property.addressLine1}, ${property.city}, ${property.state}`,
+            description: `Work order #${sequence}: ${serviceType} service required at ${property.addressLine1}, ${property.city}, ${property.state}`,
             addressLine1: property.addressLine1,
             city: property.city,
             state: property.state,
@@ -79,12 +90,33 @@ async function main() {
             creatorId: creator.id,
             assignedContractorId: contractor.id,
             assignedCoordinatorId: coordinator.id,
-            workOrderNumber: `WO-${String(propIndex * 5 + woIndex + 1).padStart(4, "0")}`,
-            dueDate: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000), // Random due date within 90 days
+            workOrderNumber,
+            dueDate,
+          },
+          create: {
+            id: workOrderId,
+            title: `${serviceType} at ${property.city} - Property ${propIndex + 1}`,
+            description: `Work order #${sequence}: ${serviceType} service required at ${property.addressLine1}, ${property.city}, ${property.state}`,
+            addressLine1: property.addressLine1,
+            city: property.city,
+            state: property.state,
+            postalCode: property.postalCode,
+            serviceType: serviceType,
+            status: status,
+            clientId: client.id,
+            creatorId: creator.id,
+            assignedContractorId: contractor.id,
+            assignedCoordinatorId: coordinator.id,
+            workOrderNumber,
+            dueDate,
           },
         });
 
-        createdCount++;
+        if (existing) {
+          updatedCount++;
+        } else {
+          createdCount++;
+        }
         workOrdersPerProperty.push({
           address: `${property.addressLine1}, ${property.city}`,
           workOrderId: workOrder.id,
@@ -92,14 +124,14 @@ async function main() {
           status: workOrder.status,
         });
 
-        console.log(`✓ Created WO #${createdCount}: ${workOrder.title} - Status: ${status}`);
+        console.log(`✓ Seeded ${workOrder.workOrderNumber}: ${workOrder.title} - Status: ${status}`);
       } catch (error) {
         console.error(`✗ Error creating work order:`, error.message);
       }
     }
   }
 
-  console.log(`\n✅ Created ${createdCount} work orders!\n`);
+  console.log(`\n✅ Seeded work orders: ${createdCount} created, ${updatedCount} updated.\n`);
   console.log("📍 Properties (5 work orders each):");
   properties.forEach((prop, i) => {
     const count = workOrdersPerProperty.filter(wo => wo.address === `${prop.addressLine1}, ${prop.city}`).length;

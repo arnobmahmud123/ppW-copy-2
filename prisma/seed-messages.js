@@ -25,38 +25,83 @@ async function main() {
 
     let threadsCreated = 0;
     let messagesCreated = 0;
+    let threadsReused = 0;
 
     // Create a thread for each work order
     for (const wo of workOrders) {
       try {
         // Pick participants for this thread
-        const coordinator = coordinators[Math.floor(Math.random() * coordinators.length)];
-        const contractor = contractors[Math.floor(Math.random() * contractors.length)];
-        const client = clients[Math.floor(Math.random() * clients.length)];
-        const admin = admins[Math.floor(Math.random() * admins.length)];
+        const baseIndex = threadsCreated + threadsReused;
+        const coordinator = coordinators[baseIndex % coordinators.length];
+        const contractor = contractors[baseIndex % contractors.length];
+        const client = clients[baseIndex % clients.length];
+        const admin = admins[baseIndex % admins.length];
 
-        // Create thread
-        const thread = await prisma.messageThread.create({
-          data: {
-            threadType: "WORK_ORDER",
+        let thread = await prisma.messageThread.findFirst({
+          where: {
             workOrderId: wo.id,
-            title: `${wo.serviceType} - ${wo.workOrderNumber}`,
-            createdByUserId: coordinator.id,
-            participants: {
-              create: [
-                { userId: coordinator.id },
-                { userId: contractor.id },
-                { userId: client.id },
-                { userId: admin.id }
-              ]
-            }
-          }
+            threadType: "WORK_ORDER",
+          },
+          include: {
+            participants: true,
+            messages: {
+              select: { id: true },
+              take: 1,
+            },
+          },
         });
 
-        threadsCreated++;
+        if (!thread) {
+          thread = await prisma.messageThread.create({
+            data: {
+              id: `seed_work_order_thread_${wo.id}`,
+              threadType: "WORK_ORDER",
+              workOrderId: wo.id,
+              title: `${wo.serviceType} - ${wo.workOrderNumber}`,
+              createdByUserId: coordinator.id,
+              participants: {
+                create: [
+                  { userId: coordinator.id },
+                  { userId: contractor.id },
+                  { userId: client.id },
+                  { userId: admin.id }
+                ]
+              }
+            },
+            include: {
+              participants: true,
+              messages: {
+                select: { id: true },
+                take: 1,
+              },
+            },
+          });
+
+          threadsCreated++;
+        } else {
+          threadsReused++;
+        }
+
+        const existingParticipantIds = new Set(thread.participants.map((participant) => participant.userId));
+        const participantIds = [coordinator.id, contractor.id, client.id, admin.id];
+        for (const userId of participantIds) {
+          if (!existingParticipantIds.has(userId)) {
+            await prisma.messageThreadParticipant.create({
+              data: {
+                messageThreadId: thread.id,
+                userId,
+              },
+            });
+          }
+        }
+
+        if (thread.messages.length > 0) {
+          console.log(`✓ Reused thread for ${wo.workOrderNumber}: existing conversation kept`);
+          continue;
+        }
 
         // Create 2-4 messages in the thread
-        const messageCount = Math.floor(Math.random() * 3) + 2;
+        const messageCount = (baseIndex % 3) + 2;
         const possibleSenders = [coordinator, contractor, client, admin];
         const messages = [
           `Work order assigned: ${wo.title}`,
@@ -66,14 +111,14 @@ async function main() {
         ];
 
         for (let i = 0; i < messageCount && i < messages.length; i++) {
-          const sender = possibleSenders[Math.floor(Math.random() * possibleSenders.length)];
+          const sender = possibleSenders[i % possibleSenders.length];
 
           await prisma.workOrderMessage.create({
             data: {
-              messageThreadId: thread.id,
-              workOrderId: wo.id,
-              body: messages[i],
-              createdByUserId: sender.id,
+            messageThreadId: thread.id,
+            workOrderId: wo.id,
+            body: messages[i],
+            createdByUserId: sender.id,
               visibilityScope: "CONTRACTOR_VISIBLE",
               messageType: "COMMENT"
             }
@@ -82,7 +127,7 @@ async function main() {
           messagesCreated++;
         }
 
-        console.log(`✓ Created thread for ${wo.workOrderNumber}: ${messagesCreated - (messagesCreated % 4)} messages`);
+        console.log(`✓ Seeded thread for ${wo.workOrderNumber}: ${messageCount} starter messages`);
       } catch (error) {
         console.error(`✗ Error creating thread for ${wo.workOrderNumber}:`, error.message);
       }
@@ -90,6 +135,7 @@ async function main() {
 
     console.log(`\n✅ Message seeding complete!`);
     console.log(`   - Created ${threadsCreated} message threads`);
+    console.log(`   - Reused ${threadsReused} existing message threads`);
     console.log(`   - Created ${messagesCreated} messages`);
   } catch (error) {
     console.error("Seeding error:", error);

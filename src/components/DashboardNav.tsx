@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { 
   Bell,
+  Building2,
   Home, 
   FileText, 
   Users, 
@@ -129,6 +130,7 @@ export default function DashboardNav() {
       return [
         ...baseItems,
         { name: "All Work Orders", href: "/dashboard/admin/work-orders", icon: FileText },
+        { name: "Properties", href: "/dashboard/admin/properties", icon: Building2 },
         { name: "Users", href: "/dashboard/admin/users", icon: Users },
         { name: "Contractors", href: "/dashboard/admin/contractors", icon: Users },
         { name: "Billing", href: "/dashboard/admin/billing", icon: DollarSign },

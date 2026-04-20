@@ -131,6 +131,7 @@ export default function DashboardNav() {
         ...baseItems,
         { name: "All Work Orders", href: "/dashboard/admin/work-orders", icon: FileText },
         { name: "Properties", href: "/dashboard/admin/properties", icon: Building2 },
+        { name: "Coordinators", href: "/dashboard/admin/coordinators", icon: Users },
         { name: "Users", href: "/dashboard/admin/users", icon: Users },
         { name: "Contractors", href: "/dashboard/admin/contractors", icon: Users },
         { name: "Billing", href: "/dashboard/admin/billing", icon: DollarSign },

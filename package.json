@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma migrate deploy && npm run seed:demo && next build --turbopack",
+    "build": "next build --turbopack",
+    "build:full": "prisma migrate deploy && npm run seed:demo && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",

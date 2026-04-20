@@ -66,13 +66,13 @@ export async function POST(request: Request, contextArg: { params: Promise<{ id:
 
     const extension = photoFile.name.includes(".") ? photoFile.name.split(".").pop() : "jpg";
     const fileName = `${thread.id}-${randomUUID()}.${extension}`;
-    const uploadDir = path.join(process.cwd(), "public", "channel-photos");
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "channels");
     const targetPath = path.join(uploadDir, fileName);
 
     await mkdir(uploadDir, { recursive: true });
     const buffer = Buffer.from(await photo.arrayBuffer());
     await writeFile(targetPath, buffer);
-    channelImageUrl = `/channel-photos/${fileName}`;
+    channelImageUrl = `/uploads/channels/${fileName}`;
   }
 
   const data: { title?: string; channelImageUrl?: string | null } = {};

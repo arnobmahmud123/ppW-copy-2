@@ -68,7 +68,7 @@ export async function POST(
   const rawExt = photoFile.name.includes(".") ? photoFile.name.split(".").pop() : "jpg";
   const safeExt = (rawExt || "jpg").replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
   const fileName = `${thread.id}-${randomUUID()}.${safeExt}`;
-  const uploadDir = path.join(process.cwd(), "public", "channel-photos");
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "channels");
   const targetPath = path.join(uploadDir, fileName);
 
   try {
@@ -80,7 +80,7 @@ export async function POST(
     return NextResponse.json({ error: "Failed to save image file." }, { status: 500 });
   }
 
-  const channelImageUrl = `/channel-photos/${fileName}`;
+  const channelImageUrl = `/uploads/channels/${fileName}`;
 
   const updated = await db.messageThread.update({
     where: { id: threadId },

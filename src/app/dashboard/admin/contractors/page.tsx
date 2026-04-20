@@ -410,7 +410,7 @@ export default function AdminContractors() {
       ) : null}
 
       {viewJobsContractor ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 sm:pt-28">
           <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-[28px] border border-white/8 bg-[#202840] shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
             <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
               <div>
@@ -466,7 +466,7 @@ export default function AdminContractors() {
       ) : null}
 
       {viewContractor ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 sm:pt-28">
           <div className="w-full max-w-3xl rounded-[28px] border border-white/8 bg-[#202840] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -553,7 +553,7 @@ export default function AdminContractors() {
       ) : null}
 
       {editModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 sm:pt-28">
           <div className="w-full max-w-2xl rounded-[28px] border border-white/8 bg-[#202840] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
             <div className="mb-6 flex items-center justify-between">
               <div>

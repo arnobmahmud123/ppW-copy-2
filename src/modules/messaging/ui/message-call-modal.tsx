@@ -137,6 +137,7 @@ export function MessageCallModal({
   const [fallbackRoomUrl, setFallbackRoomUrl] = useState<string | null>(null);
   const [sharingScreen, setSharingScreen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [conferenceReady, setConferenceReady] = useState(false);
 
   useEffect(() => {
     leaveOnCleanupRef.current = true;
@@ -145,6 +146,7 @@ export function MessageCallModal({
       setMicEnabled(true);
       setSharingScreen(false);
       setRecording(false);
+      setConferenceReady(false);
       return;
     }
 
@@ -189,6 +191,7 @@ export function MessageCallModal({
       setLoading(true);
       setNotice(null);
       setFallbackRoomUrl(null);
+      setConferenceReady(false);
 
       try {
         await patchCall("heartbeat", {
@@ -215,7 +218,17 @@ export function MessageCallModal({
             startWithVideoMuted: call.mode === "AUDIO",
             startAudioOnly: call.mode === "AUDIO",
             disableDeepLinking: true,
-            toolbarButtons: [],
+            toolbarButtons: [
+              "microphone",
+              "camera",
+              "desktop",
+              "chat",
+              "tileview",
+              "hangup",
+              "fullscreen",
+              "participants-pane",
+              "settings",
+            ],
           },
           interfaceConfigOverwrite: {
             MOBILE_APP_PROMO: false,
@@ -229,6 +242,7 @@ export function MessageCallModal({
         });
         api.addListener("videoConferenceJoined", () => {
           setLoading(false);
+          setConferenceReady(true);
         });
         api.addListener("participantJoined", () => {
           void refreshCallState();
@@ -253,6 +267,7 @@ export function MessageCallModal({
         setLoading(false);
         const fallbackUrl = `https://meet.jit.si/${encodeURIComponent(call.roomName)}#config.prejoinPageEnabled=false&config.startWithVideoMuted=${call.mode === "AUDIO"}&config.startAudioOnly=${call.mode === "AUDIO"}`;
         setFallbackRoomUrl(fallbackUrl);
+        setConferenceReady(false);
         setNotice(
           error instanceof Error
             ? `${error.message} Opened fallback conference view instead.`
@@ -319,6 +334,10 @@ export function MessageCallModal({
   }
 
   function handleToggleMic() {
+    if (!apiRef.current || !conferenceReady) {
+      setNotice("Audio controls will be ready as soon as the conference finishes joining.");
+      return;
+    }
     apiRef.current?.executeCommand("toggleAudio");
     const next = !micEnabled;
     setMicEnabled(next);
@@ -326,6 +345,10 @@ export function MessageCallModal({
   }
 
   function handleToggleCamera() {
+    if (!apiRef.current || !conferenceReady) {
+      setNotice("Video controls will be ready as soon as the conference finishes joining.");
+      return;
+    }
     apiRef.current?.executeCommand("toggleVideo");
     const next = !cameraEnabled;
     setCameraEnabled(next);
@@ -342,8 +365,12 @@ export function MessageCallModal({
   }
 
   function handleToggleScreenShare() {
-    if (!apiRef.current) {
-      setNotice("Screen sharing is available once the embedded conference controls are ready.");
+    if (!apiRef.current || !conferenceReady) {
+      setNotice(
+        fallbackRoomUrl
+          ? "Use the built-in Jitsi toolbar inside the meeting view for screen sharing."
+          : "Screen sharing is available once the embedded conference controls are ready."
+      );
       return;
     }
 
@@ -353,8 +380,12 @@ export function MessageCallModal({
   }
 
   function handleToggleRecording() {
-    if (!apiRef.current) {
-      setNotice("Recording is only available in the embedded conference view.");
+    if (!apiRef.current || !conferenceReady) {
+      setNotice(
+        fallbackRoomUrl
+          ? "Recording is only available from the embedded conference controls when the meeting fully loads."
+          : "Recording is only available in the embedded conference view once it is ready."
+      );
       return;
     }
 
@@ -385,6 +416,9 @@ export function MessageCallModal({
     return null;
   }
 
+  const usingFallbackRoom = Boolean(fallbackRoomUrl);
+  const canUseEmbeddedControls = !usingFallbackRoom && conferenceReady;
+
   return (
     <div className="absolute inset-0 z-40 flex bg-slate-950/45 backdrop-blur-sm">
       <div className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#fbf8ff_0%,#eef5ff_100%)]">
@@ -401,8 +435,9 @@ export function MessageCallModal({
             <button
               type="button"
               onClick={handleToggleMic}
+              disabled={!canUseEmbeddedControls}
               className={cn(
-                "inline-flex h-10 w-10 items-center justify-center rounded-full border transition",
+                "inline-flex h-10 w-10 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50",
                 micEnabled
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                   : "border-rose-200 bg-rose-50 text-rose-700"
@@ -414,8 +449,9 @@ export function MessageCallModal({
               <button
                 type="button"
                 onClick={handleToggleCamera}
+                disabled={!canUseEmbeddedControls}
                 className={cn(
-                  "inline-flex h-10 w-10 items-center justify-center rounded-full border transition",
+                  "inline-flex h-10 w-10 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50",
                   cameraEnabled
                     ? "border-sky-200 bg-sky-50 text-sky-700"
                     : "border-amber-200 bg-amber-50 text-amber-700"
@@ -427,7 +463,7 @@ export function MessageCallModal({
             <button
               type="button"
               onClick={handleToggleScreenShare}
-              disabled={Boolean(fallbackRoomUrl)}
+              disabled={!canUseEmbeddedControls}
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
                 sharingScreen
@@ -441,7 +477,7 @@ export function MessageCallModal({
             <button
               type="button"
               onClick={handleToggleRecording}
-              disabled={Boolean(fallbackRoomUrl)}
+              disabled={!canUseEmbeddedControls}
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
                 recording
@@ -452,6 +488,16 @@ export function MessageCallModal({
               <Radio className="h-4 w-4" />
               {recording ? "Recording" : "Record"}
             </button>
+            {usingFallbackRoom ? (
+              <a
+                href={fallbackRoomUrl ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+              >
+                Open full meeting
+              </a>
+            ) : null}
             <button
               type="button"
               onClick={() => handleHangup(false)}
@@ -483,7 +529,7 @@ export function MessageCallModal({
                 title={`${threadName} conference room`}
                 src={fallbackRoomUrl}
                 className={cn("h-full w-full border-0", loading ? "opacity-0" : "opacity-100")}
-                allow="camera; microphone; fullscreen; display-capture"
+                allow="camera; microphone; fullscreen; display-capture; autoplay"
               />
             ) : (
               <div

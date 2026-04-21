@@ -26,19 +26,30 @@ function normalizeVisibilityScope(scope: string): MessageVisibilityScope {
 
 async function saveMessageFile(
   file: File
-): Promise<{ fileName: string; mimeType: string; sizeBytes: number; storageKey: string }> {
+): Promise<{
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  storageKey: string;
+  blobData: Buffer;
+}> {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   const dir = path.join(process.cwd(), "public", "uploads", "messages");
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const safe = (file.name || `file-${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, "_");
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`;
-  fs.writeFileSync(path.join(dir, filename), buffer);
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, filename), buffer);
+  } catch (error) {
+    console.warn("Work-order thread attachment fell back to database storage.", error);
+  }
   return {
     fileName: file.name || filename,
     mimeType: file.type || "application/octet-stream",
     sizeBytes: file.size,
     storageKey: `uploads/messages/${filename}`,
+    blobData: buffer,
   };
 }
 
@@ -170,7 +181,13 @@ export async function POST(req: Request) {
       }
     }
 
-    const savedFiles: { fileName: string; mimeType: string; sizeBytes: number; storageKey: string }[] = [];
+    const savedFiles: {
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      storageKey: string;
+      blobData: Buffer;
+    }[] = [];
     for (const file of directFiles) {
       try {
         savedFiles.push(await saveMessageFile(file));
@@ -214,6 +231,7 @@ export async function POST(req: Request) {
               mimeType: file.mimeType,
               sizeBytes: file.sizeBytes,
               storageKey: file.storageKey,
+              blobData: file.blobData,
             },
           });
 
@@ -226,6 +244,7 @@ export async function POST(req: Request) {
                 mimeType: file.mimeType,
                 sizeBytes: file.sizeBytes,
                 storageKey: file.storageKey,
+                blobData: file.blobData,
                 createdByUserId: session.id,
               },
             });

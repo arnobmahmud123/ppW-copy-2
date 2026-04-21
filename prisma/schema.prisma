@@ -835,6 +835,7 @@ model MessageAttachment {
   sourceType      MessageAttachmentSourceType @default(DIRECT_UPLOAD)
   fileName        String
   storageKey      String
+  blobData        Bytes?
   mimeType        String
   sizeBytes       Int
   createdByUserId String?
@@ -853,6 +854,7 @@ model MessageAttachmentVersion {
   versionNumber       Int
   fileName            String
   storageKey          String
+  blobData            Bytes?
   mimeType            String
   sizeBytes           Int
   createdByUserId     String?

@@ -17,6 +17,7 @@ type MessageAttachmentVersionRecord = {
   versionNumber: number;
   fileName: string;
   storageKey: string;
+  blobData?: Uint8Array | Buffer | null;
   mimeType: string;
   sizeBytes: number;
   createdAt: Date | string;
@@ -71,6 +72,14 @@ function getLocalFilePath(storageKey: string | null | undefined) {
   }
 
   return path.join(process.cwd(), "public", storageKey.replace(/^\/+/, ""));
+}
+
+function getAttachmentBuffer(blobData: Uint8Array | Buffer | null | undefined) {
+  if (!blobData) {
+    return null;
+  }
+
+  return Buffer.isBuffer(blobData) ? blobData : Buffer.from(blobData);
 }
 
 function isImageAttachment(fileName: string, mimeType: string | null | undefined) {
@@ -128,6 +137,21 @@ export async function GET(request: Request, { params }: AttachmentRouteProps) {
   const isPdf = isPdfAttachment(targetFile.fileName, targetFile.mimeType);
   const isTextPreview = isTextPreviewAttachment(targetFile.fileName, targetFile.mimeType);
   const localFilePath = getLocalFilePath(targetFile.storageKey);
+  const inlineBuffer = getAttachmentBuffer(targetFile.blobData);
+
+  if (inlineBuffer) {
+    return new NextResponse(inlineBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": targetFile.mimeType || "application/octet-stream",
+        "Content-Disposition":
+          wantsPreview && (isImage || isPdf || isTextPreview)
+            ? "inline"
+            : `attachment; filename="${targetFile.fileName}"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
 
   if (localFilePath) {
     try {
@@ -313,6 +337,7 @@ export async function PUT(request: Request, { params }: AttachmentRouteProps) {
             versionNumber: 1,
             fileName: attachment.fileName,
             storageKey: attachment.storageKey,
+            blobData: attachment.blobData,
             mimeType: attachment.mimeType,
             sizeBytes: attachment.sizeBytes,
             createdByUserId: attachment.createdByUserId ?? session.id,
@@ -331,6 +356,7 @@ export async function PUT(request: Request, { params }: AttachmentRouteProps) {
           versionNumber: currentCount + 1,
           fileName: file.name || attachment.fileName,
           storageKey: nextStorageKey,
+          blobData: bytes,
           mimeType: file.type || attachment.mimeType || "application/octet-stream",
           sizeBytes: file.size,
           createdByUserId: session.id,
@@ -345,6 +371,7 @@ export async function PUT(request: Request, { params }: AttachmentRouteProps) {
         mimeType: file.type || attachment.mimeType || "application/octet-stream",
         sizeBytes: file.size,
         storageKey: nextStorageKey,
+        blobData: bytes,
       },
     });
   });

@@ -173,7 +173,13 @@ export default function DashboardNav() {
     if (role === "ADMIN") {
       switch (name) {
         case "All Work Orders":
-          return "Work Orders"
+          return "Orders"
+        case "Coordinators":
+          return "Coords"
+        case "Contractors":
+          return "Vendors"
+        case "Operations AI":
+          return "AI Ops"
         case "Messages":
           return "Chat"
         default:
@@ -191,28 +197,28 @@ export default function DashboardNav() {
   return (
     <nav className="app-animate-soft sticky top-0 z-[140] isolate border-b border-[rgba(224,211,255,0.88)] bg-[radial-gradient(circle_at_top_left,rgba(255,190,232,0.22),transparent_24%),radial-gradient(circle_at_top_right,rgba(176,197,255,0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(248,244,255,0.96)_52%,rgba(241,246,255,0.96)_100%)] text-[var(--foreground)] shadow-[0_18px_48px_rgba(189,181,236,0.16)] backdrop-blur-xl">
       <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8">
-        <div className="flex min-h-[78px] items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-4">
+        <div className="flex min-h-[74px] items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="shrink-0">
-              <Link href="/" className="text-[1.7rem] font-semibold tracking-tight text-[#24324a] lg:text-[1.85rem]">
+              <Link href="/" className="text-[1.55rem] font-semibold tracking-tight text-[#24324a] lg:text-[1.72rem]">
                 ProPres
               </Link>
             </div>
 
-            <div className="hidden min-w-0 flex-1 md:ml-2 md:flex md:items-center md:gap-0.5 md:overflow-x-auto md:whitespace-nowrap lg:ml-4 lg:gap-1">
+            <div className="hidden min-w-0 flex-1 md:ml-1 md:flex md:items-center md:gap-0.5 md:overflow-x-auto md:whitespace-nowrap lg:ml-2">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`app-hover-lift inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-1.5 text-[13px] font-medium lg:px-2.5 ${
+                    className={`app-hover-lift inline-flex shrink-0 items-center gap-1 rounded-xl px-1.5 py-1.5 text-[12px] font-medium lg:px-2 ${
                       isActive
                         ? "app-glass-sheen bg-[linear-gradient(135deg,rgba(255,236,248,0.98)_0%,rgba(234,241,255,0.98)_100%)] text-[#7c3aed] shadow-[inset_0_0_0_1px_rgba(186,125,255,0.24),0_12px_24px_rgba(160,142,221,0.16)]"
                         : "text-[#6f7da1] hover:bg-[linear-gradient(135deg,rgba(255,245,251,0.96)_0%,rgba(239,245,255,0.96)_100%)] hover:text-[#24324a]"
                     }`}
                   >
-                    <item.icon className={`h-3.5 w-3.5 ${isActive ? "text-[#c448f4]" : "text-[#8a96bb]"}`} />
+                    <item.icon className={`h-3.25 w-3.25 ${isActive ? "text-[#c448f4]" : "text-[#8a96bb]"}`} />
                     {getNavLabel(item.name)}
                   </Link>
                 )
@@ -220,7 +226,7 @@ export default function DashboardNav() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 pl-3 lg:gap-3">
+          <div className="flex shrink-0 items-center gap-2 pl-2 lg:gap-2.5">
             <div className="relative">
               <button
                 onClick={() => setIsNotificationsOpen((prev) => !prev)}
@@ -293,7 +299,7 @@ export default function DashboardNav() {
               ) : null}
             </div>
 
-            <div className="hidden md:flex md:max-w-[180px] md:flex-col md:items-end md:text-right lg:max-w-[220px]">
+            <div className="hidden xl:flex xl:max-w-[160px] xl:flex-col xl:items-end xl:text-right">
               <span className="truncate text-sm font-medium text-[#24324a]">
                 Welcome, {session?.user.name}
               </span>

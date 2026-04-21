@@ -8,12 +8,15 @@ import {
   ArrowLeft,
   Building2,
   Camera,
+  CheckCircle2,
   Clock3,
   DollarSign,
   FileText,
+  KeyRound,
   MapPin,
   MessageSquare,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react"
 
 import type { PropertyDetailResponse } from "@/modules/properties/types"
@@ -236,6 +239,159 @@ export default function AdminPropertyDetailPage() {
               </div>
             </div>
           ))}
+        </section>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.95fr,1.05fr]">
+        <section className="rounded-[28px] border border-[#e4ddff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f5ff_100%)] p-6 shadow-[0_18px_40px_rgba(196,186,255,0.14)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#fef5ff_0%,#eef6ff_100%)]">
+              <ShieldCheck className="h-5 w-5 text-[#7d58df]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-[#26324f]">Inspection & compliance</h2>
+              <p className="mt-1 text-sm text-[#7280ad]">Access readiness, inspection evidence, and compliance watch items for this property.</p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {[
+              { label: "Inspection work orders", value: data.compliance.inspectionWorkOrders, tone: "text-[#6f63ff]" },
+              { label: "Inspection photo coverage", value: `${data.compliance.inspectionPhotoCoverage}%`, tone: "text-[#2f7cff]" },
+              { label: "Before / during / after", value: `${data.compliance.beforeDuringAfterCoverage}%`, tone: "text-[#2f9b67]" },
+              { label: "Compliance alerts", value: data.compliance.overdueComplianceItems, tone: "text-[#e16464]" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-[22px] border border-[#ece5ff] bg-white/85 px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#91a1c8]">{item.label}</div>
+                <div className={`mt-2 text-2xl font-semibold ${item.tone}`}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 rounded-[24px] border border-[#ece5ff] bg-white/85 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#5a6793]">
+              <KeyRound className="h-4 w-4 text-[#8a78cb]" />
+              Property access details
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {[
+                ["Lock code", data.property.lockCode],
+                ["Lock location", data.property.lockLocation],
+                ["Key code", data.property.keyCode],
+                ["Gate code", data.property.gateCode],
+                ["Lot size", data.property.lotSize],
+                [
+                  "GPS",
+                  data.property.gpsLat !== null && data.property.gpsLon !== null
+                    ? `${data.property.gpsLat.toFixed(5)}, ${data.property.gpsLon.toFixed(5)}`
+                    : null,
+                ],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-[#f0ebff] bg-[#fbf9ff] px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a84dd]">{label}</div>
+                  <div className="mt-1 text-sm font-medium text-[#26324f]">{value || "Not captured yet"}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {data.compliance.checklist.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 rounded-[22px] border border-[#ece5ff] bg-white/85 px-4 py-4">
+                <div className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl ${
+                  item.status === "COMPLETE"
+                    ? "bg-[#eefcf5] text-[#2f9b67]"
+                    : item.status === "WARNING"
+                      ? "bg-[#fff1f1] text-[#e16464]"
+                      : item.status === "PARTIAL"
+                        ? "bg-[#fff7ea] text-[#d78b2d]"
+                        : "bg-[#f6f2ff] text-[#7d58df]"
+                }`}>
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[#26324f]">{item.label}</h3>
+                    <span className="rounded-full border border-[#eadfff] bg-[#f7f2ff] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a78cb]">
+                      {item.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-[#7280ad]">{item.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-[#e4ddff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f5ff_100%)] p-6 shadow-[0_18px_40px_rgba(196,186,255,0.14)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#fffaf4_0%,#fff1fb_100%)]">
+              <DollarSign className="h-5 w-5 text-[#ef7b49]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-[#26324f]">Property finance view</h2>
+              <p className="mt-1 text-sm text-[#7280ad]">Estimated revenue, contractor spend, profit, and vendor exposure across this address.</p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {[
+              { label: "Bid items", value: data.finance.bidCount, tone: "text-[#6f63ff]" },
+              { label: "Completion items", value: data.finance.completionCount, tone: "text-[#2f7cff]" },
+              { label: "Estimated revenue", value: formatMoney(data.finance.estimatedRevenue), tone: "text-[#ef7b49]" },
+              { label: "Estimated profit", value: formatMoney(data.finance.estimatedProfit), tone: "text-[#2f9b67]" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-[22px] border border-[#ece5ff] bg-white/85 px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#91a1c8]">{item.label}</div>
+                <div className={`mt-2 text-2xl font-semibold ${item.tone}`}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "Est. contractor cost", value: formatMoney(data.finance.estimatedContractorCost) },
+              { label: "Invoiced revenue", value: formatMoney(data.finance.invoicedRevenue) },
+              { label: "Margin", value: `${data.finance.estimatedMarginPercent.toFixed(1)}%` },
+            ].map((item) => (
+              <div key={item.label} className="rounded-[22px] border border-[#ece5ff] bg-[#fbf9ff] px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a84dd]">{item.label}</div>
+                <div className="mt-1 text-lg font-semibold text-[#26324f]">{item.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 rounded-[24px] border border-[#ece5ff] bg-white/85 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#26324f]">Top vendor exposure</h3>
+                <p className="mt-1 text-xs text-[#7280ad]">Who is carrying the most spend and billed revenue on this property.</p>
+              </div>
+              <div className="rounded-full bg-[#f7f2ff] px-3 py-1 text-xs font-semibold text-[#7d58df]">
+                Avg invoice {formatMoney(data.finance.averageInvoice)}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {data.finance.topVendors.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#e5dcff] bg-[#fbf9ff] px-4 py-6 text-center text-sm text-[#7280ad]">
+                  No linked vendor finance data yet for this property.
+                </div>
+              ) : (
+                data.finance.topVendors.map((vendor) => (
+                  <div key={vendor.name} className="grid gap-3 rounded-[22px] border border-[#f0ebff] bg-[#fbf9ff] px-4 py-4 md:grid-cols-[1.2fr,0.6fr,0.8fr,0.8fr] md:items-center">
+                    <div>
+                      <div className="text-sm font-semibold text-[#26324f]">{vendor.name}</div>
+                      <div className="mt-1 text-xs text-[#7280ad]">{vendor.activeWorkOrders} active work orders</div>
+                    </div>
+                    <div className="text-sm font-semibold text-[#435072]">{formatMoney(vendor.estimatedSpend)}</div>
+                    <div className="text-sm font-semibold text-[#ef7b49]">{formatMoney(vendor.billedRevenue)}</div>
+                    <div className="text-xs uppercase tracking-[0.18em] text-[#8f7ed1]">vendor view</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </section>
       </div>
 

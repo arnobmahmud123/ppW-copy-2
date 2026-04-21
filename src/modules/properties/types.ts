@@ -74,6 +74,13 @@ export type PropertyDetailResponse = {
     postalCode: string
     frontImageUrl: string | null
     latestUpdateAt: string
+    lockCode: string | null
+    lockLocation: string | null
+    keyCode: string | null
+    gateCode: string | null
+    lotSize: string | null
+    gpsLat: number | null
+    gpsLon: number | null
   }
   summary: {
     totalWorkOrders: number
@@ -84,6 +91,38 @@ export type PropertyDetailResponse = {
     totalInvoices: number
     totalInvoiceAmount: number
     totalPhotos: number
+  }
+  compliance: {
+    inspectionWorkOrders: number
+    propertiesWithAccessCodes: boolean
+    frontImageCoverage: number
+    inspectionPhotoCoverage: number
+    beforeDuringAfterCoverage: number
+    overdueComplianceItems: number
+    openInspectionMessages: number
+    latestInspectionAt: string | null
+    checklist: Array<{
+      id: string
+      label: string
+      status: "COMPLETE" | "PARTIAL" | "MISSING" | "WARNING"
+      detail: string
+    }>
+  }
+  finance: {
+    bidCount: number
+    completionCount: number
+    estimatedRevenue: number
+    estimatedContractorCost: number
+    estimatedProfit: number
+    estimatedMarginPercent: number
+    invoicedRevenue: number
+    averageInvoice: number
+    topVendors: Array<{
+      name: string
+      activeWorkOrders: number
+      estimatedSpend: number
+      billedRevenue: number
+    }>
   }
   gallery: PropertyGalleryItem[]
   timeline: PropertyTimelineEvent[]

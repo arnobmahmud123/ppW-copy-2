@@ -9,6 +9,8 @@ import type {
   PropertyWorkOrderHistoryRow,
 } from "@/modules/properties/types"
 
+type RawTask = Record<string, unknown>
+
 type PropertyIdentity = {
   addressLine1: string
   city: string
@@ -86,6 +88,29 @@ function isOverdue(status: string, dueDate: Date | null) {
 function formatParticipantName(name: string | null | undefined) {
   const trimmed = name?.trim()
   return trimmed ? trimmed : null
+}
+
+function parseTasks(tasks: string | null | undefined): RawTask[] {
+  if (!tasks) return []
+  try {
+    const parsed = JSON.parse(tasks)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function getTaskNumber(task: RawTask, key: string) {
+  const value = Number(task[key] ?? 0)
+  return Number.isFinite(value) ? value : 0
+}
+
+function getTaskTotal(task: RawTask, unitKey: "clientPrice" | "contractorPrice") {
+  return getTaskNumber(task, "qty") * getTaskNumber(task, unitKey)
+}
+
+function getTaskType(task: RawTask) {
+  return String(task.taskType || "").trim().toLowerCase()
 }
 
 export async function getAdminPropertiesOverview(): Promise<PropertyListItem[]> {
@@ -319,8 +344,16 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
       status: true,
       serviceType: true,
       dueDate: true,
+      tasks: true,
       assignedDate: true,
       fieldComplete: true,
+      lockCode: true,
+      lockLocation: true,
+      keyCode: true,
+      gateCode: true,
+      lotSize: true,
+      gpsLat: true,
+      gpsLon: true,
       updatedAt: true,
       createdAt: true,
       client: {
@@ -426,6 +459,66 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
   const latestUpdatedWorkOrder = [...workOrders].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )[0]
+
+  const parsedTaskRows = workOrders.flatMap((workOrder) =>
+    parseTasks(workOrder.tasks).map((task) => ({
+      workOrderId: workOrder.id,
+      contractorName:
+        formatParticipantName(workOrder.assignedContractor?.company) ||
+        formatParticipantName(workOrder.assignedContractor?.name) ||
+        "Unassigned contractor",
+      task,
+    }))
+  )
+
+  const bidTasks = parsedTaskRows.filter((row) => getTaskType(row.task) === "bid")
+  const completionTasks = parsedTaskRows.filter((row) => getTaskType(row.task) === "completion")
+  const estimatedRevenue = parsedTaskRows.reduce((sum, row) => sum + getTaskTotal(row.task, "clientPrice"), 0)
+  const estimatedContractorCost = parsedTaskRows.reduce(
+    (sum, row) => sum + getTaskTotal(row.task, "contractorPrice"),
+    0
+  )
+  const estimatedProfit = estimatedRevenue - estimatedContractorCost
+  const estimatedMarginPercent = estimatedRevenue > 0 ? (estimatedProfit / estimatedRevenue) * 100 : 0
+
+  const vendorMap = new Map<
+    string,
+    { name: string; activeWorkOrders: Set<string>; estimatedSpend: number; billedRevenue: number }
+  >()
+
+  workOrders.forEach((workOrder) => {
+    const vendorName =
+      formatParticipantName(workOrder.assignedContractor?.company) ||
+      formatParticipantName(workOrder.assignedContractor?.name)
+    if (!vendorName) return
+
+    const current =
+      vendorMap.get(vendorName) ?? {
+        name: vendorName,
+        activeWorkOrders: new Set<string>(),
+        estimatedSpend: 0,
+        billedRevenue: 0,
+      }
+
+    if (ACTIVE_STATUSES.has(workOrder.status)) {
+      current.activeWorkOrders.add(workOrder.id)
+    }
+    current.billedRevenue += workOrder.invoice?.clientTotal ?? 0
+    vendorMap.set(vendorName, current)
+  })
+
+  parsedTaskRows.forEach((row) => {
+    const current =
+      vendorMap.get(row.contractorName) ?? {
+        name: row.contractorName,
+        activeWorkOrders: new Set<string>(),
+        estimatedSpend: 0,
+        billedRevenue: 0,
+      }
+    current.estimatedSpend += getTaskTotal(row.task, "contractorPrice")
+    current.activeWorkOrders.add(row.workOrderId)
+    vendorMap.set(row.contractorName, current)
+  })
 
   const gallery: PropertyGalleryItem[] = workOrders
     .flatMap((workOrder) =>
@@ -556,6 +649,103 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
     invoiceAmount: workOrder.invoice?.clientTotal ?? null,
   }))
 
+  const inspectionWorkOrders = workOrders.filter((workOrder) => workOrder.serviceType === "INSPECTION")
+  const inspectionPhotoCount = workOrders.reduce(
+    (sum, workOrder) =>
+      sum + workOrder.files.filter((file) => file.category === "PHOTO_INSPECTION").length,
+    0
+  )
+  const beforeDuringAfterPhotoCount = workOrders.reduce(
+    (sum, workOrder) =>
+      sum +
+      workOrder.files.filter((file) =>
+        ["PHOTO_BEFORE", "PHOTO_DURING", "PHOTO_AFTER"].includes(file.category)
+      ).length,
+    0
+  )
+  const frontImageCoverage = workOrders.length > 0 ? (gallery.length > 0 ? 100 : 0) : 0
+  const inspectionPhotoCoverage =
+    inspectionWorkOrders.length > 0
+      ? Math.min(100, Math.round((inspectionPhotoCount / inspectionWorkOrders.length) * 100))
+      : inspectionPhotoCount > 0
+        ? 100
+        : 0
+  const beforeDuringAfterCoverage =
+    workOrders.length > 0 ? Math.min(100, Math.round((beforeDuringAfterPhotoCount / workOrders.length) * 100)) : 0
+  const propertiesWithAccessCodes = Boolean(
+    latestUpdatedWorkOrder.lockCode ||
+      latestUpdatedWorkOrder.keyCode ||
+      latestUpdatedWorkOrder.gateCode
+  )
+  const latestInspectionAt =
+    inspectionWorkOrders
+      .map((workOrder) => workOrder.updatedAt)
+      .sort((a, b) => b.getTime() - a.getTime())[0]
+      ?.toISOString() ?? null
+  const openInspectionMessages = workOrders.reduce(
+    (sum, workOrder) =>
+      sum +
+      workOrder.threadedMessages.filter(
+        (message) =>
+          message.messageType === "INSPECTION_UPDATE" ||
+          message.body.toLowerCase().includes("inspection")
+      ).length,
+    0
+  )
+  const overdueComplianceItems =
+    workOrders.filter((workOrder) => isOverdue(workOrder.status, workOrder.dueDate)).length +
+    (propertiesWithAccessCodes ? 0 : 1) +
+    (inspectionPhotoCoverage >= 100 ? 0 : 1)
+
+  const complianceChecklist = [
+    {
+      id: "access",
+      label: "Access & lock information",
+      status: propertiesWithAccessCodes ? "COMPLETE" : "MISSING",
+      detail: propertiesWithAccessCodes
+        ? "Lock, key, or gate information is stored on the latest linked work order."
+        : "No lock, key, or gate codes are stored for this property yet.",
+    },
+    {
+      id: "gallery",
+      label: "Front image & gallery coverage",
+      status: gallery.length > 0 ? "COMPLETE" : "MISSING",
+      detail: gallery.length > 0
+        ? `${gallery.length} photo assets are linked to this property.`
+        : "No property images are linked yet.",
+    },
+    {
+      id: "inspection",
+      label: "Inspection evidence",
+      status:
+        inspectionPhotoCoverage >= 100 ? "COMPLETE" : inspectionPhotoCoverage > 0 ? "PARTIAL" : "MISSING",
+      detail:
+        inspectionWorkOrders.length > 0
+          ? `${inspectionPhotoCount} inspection photos across ${inspectionWorkOrders.length} inspection work orders.`
+          : "No inspection work orders are linked to this property yet.",
+    },
+    {
+      id: "completion",
+      label: "Before / during / after coverage",
+      status:
+        beforeDuringAfterCoverage >= 100
+          ? "COMPLETE"
+          : beforeDuringAfterCoverage > 0
+            ? "PARTIAL"
+            : "MISSING",
+      detail: `${beforeDuringAfterPhotoCount} completion-stage photos are recorded across linked work orders.`,
+    },
+    {
+      id: "aging",
+      label: "Overdue compliance watch",
+      status: overdueComplianceItems > 0 ? "WARNING" : "COMPLETE",
+      detail:
+        overdueComplianceItems > 0
+          ? `${overdueComplianceItems} open compliance risk item(s) need review.`
+          : "No overdue compliance risks detected from the linked work orders.",
+    },
+  ] as const
+
   const summary = {
     totalWorkOrders: workOrders.length,
     openWorkOrders: workOrders.filter((workOrder) => ACTIVE_STATUSES.has(workOrder.status)).length,
@@ -579,8 +769,45 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
       postalCode: latestUpdatedWorkOrder.postalCode,
       frontImageUrl: gallery[0]?.url ?? null,
       latestUpdateAt: latestUpdatedWorkOrder.updatedAt.toISOString(),
+      lockCode: latestUpdatedWorkOrder.lockCode ?? null,
+      lockLocation: latestUpdatedWorkOrder.lockLocation ?? null,
+      keyCode: latestUpdatedWorkOrder.keyCode ?? null,
+      gateCode: latestUpdatedWorkOrder.gateCode ?? null,
+      lotSize: latestUpdatedWorkOrder.lotSize ?? null,
+      gpsLat: latestUpdatedWorkOrder.gpsLat ?? null,
+      gpsLon: latestUpdatedWorkOrder.gpsLon ?? null,
     },
     summary,
+    compliance: {
+      inspectionWorkOrders: inspectionWorkOrders.length,
+      propertiesWithAccessCodes,
+      frontImageCoverage,
+      inspectionPhotoCoverage,
+      beforeDuringAfterCoverage,
+      overdueComplianceItems,
+      openInspectionMessages,
+      latestInspectionAt,
+      checklist: complianceChecklist.map((item) => ({ ...item })),
+    },
+    finance: {
+      bidCount: bidTasks.length,
+      completionCount: completionTasks.length,
+      estimatedRevenue,
+      estimatedContractorCost,
+      estimatedProfit,
+      estimatedMarginPercent,
+      invoicedRevenue: summary.totalInvoiceAmount,
+      averageInvoice: summary.totalInvoices > 0 ? summary.totalInvoiceAmount / summary.totalInvoices : 0,
+      topVendors: Array.from(vendorMap.values())
+        .map((vendor) => ({
+          name: vendor.name,
+          activeWorkOrders: vendor.activeWorkOrders.size,
+          estimatedSpend: vendor.estimatedSpend,
+          billedRevenue: vendor.billedRevenue,
+        }))
+        .sort((a, b) => b.estimatedSpend - a.estimatedSpend)
+        .slice(0, 5),
+    },
     gallery,
     timeline,
     workOrders: workOrderRows,

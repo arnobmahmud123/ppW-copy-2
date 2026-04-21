@@ -36,9 +36,37 @@ interface Invoice {
   }
 }
 
+interface FinanceInsights {
+  overview: {
+    totalInvoicedRevenue: number
+    totalEstimatedRevenue: number
+    totalContractorSpend: number
+    totalEstimatedProfit: number
+    estimatedMarginPercent: number
+    totalChargebacks: number
+    totalMaterialCost: number
+    totalPaid: number
+    totalPending: number
+    invoiceCount: number
+    averageInvoice: number
+  }
+  vendorEarnings: Array<{
+    name: string
+    activeOrders: number
+    estimatedSpend: number
+    estimatedRevenue: number
+    estimatedProfit: number
+    materialCost: number
+    chargebacks: number
+    paidRevenue: number
+    marginPercent: number
+  }>
+}
+
 export default function AdminBilling() {
-  const { data: session } = useSession()
+  useSession()
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [insights, setInsights] = useState<FinanceInsights | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("ALL")
@@ -63,7 +91,7 @@ export default function AdminBilling() {
     }).format(amount || 0)
 
   useEffect(() => {
-    fetchInvoices()
+    void Promise.all([fetchInvoices(), fetchInsights()])
   }, [])
 
   const fetchInvoices = async () => {
@@ -77,6 +105,18 @@ export default function AdminBilling() {
       console.error("Error fetching invoices:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchInsights = async () => {
+    try {
+      const response = await fetch("/api/admin/finance-insights")
+      if (response.ok) {
+        const data = await response.json()
+        setInsights(data)
+      }
+    } catch (error) {
+      console.error("Error fetching finance insights:", error)
     }
   }
 
@@ -120,11 +160,11 @@ export default function AdminBilling() {
     return matchesSearch && matchesStatus
   })
 
-  const totalRevenue = invoices
+  const totalRevenue = insights?.overview.totalPaid ?? invoices
     .filter(invoice => invoice.status === "PAID")
     .reduce((sum, invoice) => sum + getInvoiceAmount(invoice), 0)
 
-  const pendingAmount = invoices
+  const pendingAmount = insights?.overview.totalPending ?? invoices
     .filter(invoice => invoice.status === "SENT")
     .reduce((sum, invoice) => sum + getInvoiceAmount(invoice), 0)
 
@@ -213,7 +253,7 @@ export default function AdminBilling() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
         <div className="overflow-hidden rounded-[24px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_100%)] shadow-[0_16px_36px_rgba(196,186,255,0.14)]">
           <div className="p-5">
             <div className="flex items-center">
@@ -223,7 +263,7 @@ export default function AdminBilling() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-[#7280ad] truncate">
-                    Total Revenue
+                    Paid Revenue
                   </dt>
                   <dd className="text-lg font-medium text-[#2b3159]">
                     {formatCurrency(totalRevenue)}
@@ -273,7 +313,73 @@ export default function AdminBilling() {
             </div>
           </div>
         </div>
+
+        <div className="overflow-hidden rounded-[24px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_100%)] shadow-[0_16px_36px_rgba(196,186,255,0.14)]">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <DollarSign className="h-6 w-6 text-[#ef7b49]" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-[#7280ad] truncate">
+                    Est. Profit
+                  </dt>
+                  <dd className="text-lg font-medium text-[#2b3159]">
+                    {formatCurrency(insights?.overview.totalEstimatedProfit ?? 0)}
+                  </dd>
+                  <dd className="text-xs text-[#8a78cb]">
+                    Margin {(insights?.overview.estimatedMarginPercent ?? 0).toFixed(1)}%
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {insights ? (
+        <div className="grid gap-6 xl:grid-cols-[0.9fr,1.1fr]">
+          <div className="rounded-[24px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_100%)] p-5 shadow-[0_16px_36px_rgba(196,186,255,0.14)]">
+            <h3 className="text-lg font-semibold text-[#2b3159]">Financial intelligence</h3>
+            <p className="mt-1 text-sm text-[#7280ad]">Profit, contractor cost, material exposure, and chargeback pressure from live work-order pricing data.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                ["Estimated revenue", formatCurrency(insights.overview.totalEstimatedRevenue)],
+                ["Contractor spend", formatCurrency(insights.overview.totalContractorSpend)],
+                ["Material cost", formatCurrency(insights.overview.totalMaterialCost)],
+                ["Chargebacks", formatCurrency(insights.overview.totalChargebacks)],
+                ["Average invoice", formatCurrency(insights.overview.averageInvoice)],
+                ["Invoice count", String(insights.overview.invoiceCount)],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-[20px] border border-[#ece5ff] bg-white/85 px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8da1cf]">{label}</div>
+                  <div className="mt-1 text-lg font-semibold text-[#2b3159]">{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_100%)] p-5 shadow-[0_16px_36px_rgba(196,186,255,0.14)]">
+            <h3 className="text-lg font-semibold text-[#2b3159]">Vendor earnings summary</h3>
+            <p className="mt-1 text-sm text-[#7280ad]">Active orders, spend, revenue, and estimated profit by vendor/contractor.</p>
+            <div className="mt-4 space-y-3">
+              {insights.vendorEarnings.slice(0, 8).map((vendor) => (
+                <div key={vendor.name} className="grid gap-2 rounded-[20px] border border-[#ece5ff] bg-white/85 px-4 py-4 md:grid-cols-[1.3fr,0.6fr,0.8fr,0.8fr,0.7fr] md:items-center">
+                  <div>
+                    <div className="text-sm font-semibold text-[#2b3159]">{vendor.name}</div>
+                    <div className="mt-1 text-xs text-[#7280ad]">{vendor.activeOrders} active orders</div>
+                  </div>
+                  <div className="text-sm font-medium text-[#435072]">{formatCurrency(vendor.estimatedSpend)}</div>
+                  <div className="text-sm font-medium text-[#ef7b49]">{formatCurrency(vendor.estimatedRevenue)}</div>
+                  <div className="text-sm font-medium text-[#2f9b67]">{formatCurrency(vendor.estimatedProfit)}</div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a78cb]">{vendor.marginPercent.toFixed(1)}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Search and Filters */}
       <div className="rounded-[24px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_100%)] p-4 shadow-[0_16px_36px_rgba(196,186,255,0.14)]">

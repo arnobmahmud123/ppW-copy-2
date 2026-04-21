@@ -2579,6 +2579,9 @@ function handleKeyDown(
   const isVoiceAttachment = (fileName: string, mimeType: string) =>
     mimeType.startsWith("audio/") || /voice-message|\.(webm|ogg|mp3|wav|m4a)$/i.test(fileName);
 
+  const isVideoAttachment = (fileName: string, mimeType: string) =>
+    mimeType.startsWith("video/") || /\.(mp4|mov|webm|m4v|avi|mkv)$/i.test(fileName);
+
   const isCodeAttachment = (fileName: string, mimeType: string) =>
     mimeType.startsWith("text/") ||
     [
@@ -2739,6 +2742,50 @@ function handleKeyDown(
             );
           }
 
+          if (isVideoAttachment(attachment.fileName, attachment.mimeType)) {
+            return (
+              <button
+                key={attachment.id}
+                type="button"
+                onClick={() =>
+                  setOpenAttachmentPreview({
+                    id: attachment.id,
+                    fileName: attachment.fileName,
+                    mimeType: attachment.mimeType,
+                    previewHref: attachmentHref,
+                  })
+                }
+                className={cn(
+                  "group overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition hover:border-violet-200 hover:shadow-md",
+                  compact ? "w-48" : "w-72"
+                )}
+                title={attachment.fileName}
+              >
+                <div className={cn("relative overflow-hidden bg-slate-950", compact ? "h-24" : "h-40")}>
+                  <video
+                    src={attachmentHref}
+                    className="h-full w-full object-cover opacity-90"
+                    muted
+                    preload="metadata"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg">
+                      <Play className="h-5 w-5 translate-x-[1px]" />
+                    </span>
+                  </div>
+                  <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+                    Video
+                  </div>
+                </div>
+                <div className="p-3">
+                  <p className="truncate text-sm font-semibold text-slate-900">{attachment.fileName}</p>
+                  <p className="mt-1 text-xs text-slate-500">Tap to preview or download</p>
+                </div>
+              </button>
+            );
+          }
+
           if (isPdfAttachment(attachment.fileName, attachment.mimeType)) {
             return (
               <button
@@ -2804,18 +2851,33 @@ function handleKeyDown(
           }
 
           return (
-            <a
+            <button
               key={attachment.id}
-              href={attachmentHref}
+              type="button"
+              onClick={() =>
+                setOpenAttachmentPreview({
+                  id: attachment.id,
+                  fileName: attachment.fileName,
+                  mimeType: attachment.mimeType,
+                  previewHref: attachmentHref,
+                })
+              }
               className={cn(
-                "inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50",
-                compact ? "max-w-[220px]" : "max-w-xs"
+                "group rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-xs font-medium text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50",
+                compact ? "w-[220px]" : "w-72"
               )}
               title={attachment.fileName}
             >
-              <Paperclip className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
-              <span className="truncate">{attachment.fileName}</span>
-            </a>
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#f7f2ff_0%,#eef5ff_100%)] text-sky-600">
+                  <Paperclip className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-900">{attachment.fileName}</p>
+                  <p className="mt-1 text-xs text-slate-500">{attachment.mimeType || "File attachment"}</p>
+                </div>
+              </div>
+            </button>
           );
         })}
       </div>
@@ -5681,7 +5743,28 @@ onKeyDown={(e) => handleKeyDown(e, "thread", threadReplyBody, setThreadReplyBody
                   title={openAttachmentPreview.fileName}
                   className="h-full w-full border-0 bg-white"
                 />
-              ) : null}
+              ) : isVideoAttachment(openAttachmentPreview.fileName, openAttachmentPreview.mimeType) ? (
+                <video
+                  src={openAttachmentPreview.previewHref}
+                  className="h-full w-full bg-black object-contain"
+                  controls
+                  playsInline
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center p-8">
+                  <div className="w-full max-w-lg rounded-[24px] border border-slate-200 bg-white p-6 text-center shadow-sm">
+                    <Paperclip className="mx-auto h-8 w-8 text-slate-400" />
+                    <p className="mt-4 text-base font-semibold text-slate-900">{openAttachmentPreview.fileName}</p>
+                    <p className="mt-2 text-sm text-slate-500">Preview is not available for this file type yet, but the file is ready to download.</p>
+                    <a
+                      href={getMessageAttachmentHref(openAttachmentPreview.id)}
+                      className="mt-4 inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Download file
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

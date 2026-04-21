@@ -174,14 +174,28 @@ export default function DashboardNav() {
       switch (name) {
         case "All Work Orders":
           return "Orders"
+        case "Properties":
+          return "Props"
+        case "Assets":
+          return "Assets"
         case "Coordinators":
           return "Coords"
+        case "Users":
+          return "Users"
         case "Contractors":
           return "Vendors"
+        case "Billing":
+          return "Bills"
         case "Operations AI":
           return "AI Ops"
+        case "Training":
+          return "Learn"
         case "Messages":
           return "Chat"
+        case "Reports":
+          return "Reports"
+        case "Support":
+          return "Support"
         default:
           return name
       }
@@ -197,28 +211,28 @@ export default function DashboardNav() {
   return (
     <nav className="app-animate-soft sticky top-0 z-[140] isolate border-b border-[rgba(224,211,255,0.88)] bg-[radial-gradient(circle_at_top_left,rgba(255,190,232,0.22),transparent_24%),radial-gradient(circle_at_top_right,rgba(176,197,255,0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(248,244,255,0.96)_52%,rgba(241,246,255,0.96)_100%)] text-[var(--foreground)] shadow-[0_18px_48px_rgba(189,181,236,0.16)] backdrop-blur-xl">
       <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8">
-        <div className="flex min-h-[74px] items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-h-[70px] items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <div className="shrink-0">
-              <Link href="/" className="text-[1.55rem] font-semibold tracking-tight text-[#24324a] lg:text-[1.72rem]">
+              <Link href="/" className="text-[1.42rem] font-semibold tracking-tight text-[#24324a] lg:text-[1.56rem]">
                 ProPres
               </Link>
             </div>
 
-            <div className="hidden min-w-0 flex-1 md:ml-1 md:flex md:items-center md:gap-0.5 md:overflow-x-auto md:whitespace-nowrap lg:ml-2">
+            <div className="hidden min-w-0 flex-1 md:ml-1 md:flex md:items-center md:gap-0.5 md:overflow-x-auto md:whitespace-nowrap">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`app-hover-lift inline-flex shrink-0 items-center gap-1 rounded-xl px-1.5 py-1.5 text-[12px] font-medium lg:px-2 ${
+                    className={`app-hover-lift inline-flex shrink-0 items-center gap-1 rounded-xl px-1.5 py-1.25 text-[11px] font-medium lg:px-1.5 ${
                       isActive
                         ? "app-glass-sheen bg-[linear-gradient(135deg,rgba(255,236,248,0.98)_0%,rgba(234,241,255,0.98)_100%)] text-[#7c3aed] shadow-[inset_0_0_0_1px_rgba(186,125,255,0.24),0_12px_24px_rgba(160,142,221,0.16)]"
                         : "text-[#6f7da1] hover:bg-[linear-gradient(135deg,rgba(255,245,251,0.96)_0%,rgba(239,245,255,0.96)_100%)] hover:text-[#24324a]"
                     }`}
                   >
-                    <item.icon className={`h-3.25 w-3.25 ${isActive ? "text-[#c448f4]" : "text-[#8a96bb]"}`} />
+                    <item.icon className={`h-3 w-3 ${isActive ? "text-[#c448f4]" : "text-[#8a96bb]"}`} />
                     {getNavLabel(item.name)}
                   </Link>
                 )
@@ -226,14 +240,14 @@ export default function DashboardNav() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 pl-2 lg:gap-2.5">
+          <div className="flex shrink-0 items-center gap-1.5 pl-1.5 lg:gap-2">
             <div className="relative">
               <button
                 onClick={() => setIsNotificationsOpen((prev) => !prev)}
-                className="app-hover-lift relative flex h-11 w-11 items-center justify-center rounded-full border border-[rgba(224,211,255,0.92)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96)_0%,rgba(245,240,255,0.96)_52%,rgba(239,245,255,0.96)_100%)] text-[#657598] shadow-[0_8px_22px_rgba(189,181,236,0.14)] transition hover:text-[#7c3aed]"
+                className="app-hover-lift relative flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(224,211,255,0.92)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96)_0%,rgba(245,240,255,0.96)_52%,rgba(239,245,255,0.96)_100%)] text-[#657598] shadow-[0_8px_22px_rgba(189,181,236,0.14)] transition hover:text-[#7c3aed]"
                 title="Notifications"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4.5 w-4.5" />
                 {unreadCount > 0 ? (
                   <span className="app-floating-accent absolute right-0.5 top-0.5 z-10 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-[rgba(209,198,255,0.96)] bg-[linear-gradient(135deg,#ffe7f8_0%,#ece1ff_58%,#dcebff_100%)] px-1 text-[10px] font-semibold leading-none text-[#24324a] shadow-[0_8px_18px_rgba(168,132,255,0.16)]">
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -299,21 +313,21 @@ export default function DashboardNav() {
               ) : null}
             </div>
 
-            <div className="hidden xl:flex xl:max-w-[160px] xl:flex-col xl:items-end xl:text-right">
-              <span className="truncate text-sm font-medium text-[#24324a]">
+            <div className="hidden lg:flex lg:max-w-[128px] lg:flex-col lg:items-end lg:text-right">
+              <span className="truncate text-[12px] font-medium text-[#24324a]">
                 Welcome, {session?.user.name}
               </span>
-              <span className="mt-1 rounded-full border border-[rgba(224,211,255,0.92)] bg-[linear-gradient(135deg,rgba(255,244,251,0.96)_0%,rgba(241,246,255,0.96)_100%)] px-2 py-1 text-xs font-semibold text-[#7c3aed]">
+              <span className="mt-1 rounded-full border border-[rgba(224,211,255,0.92)] bg-[linear-gradient(135deg,rgba(255,244,251,0.96)_0%,rgba(241,246,255,0.96)_100%)] px-1.5 py-0.5 text-[10px] font-semibold text-[#7c3aed]">
                 {role}
               </span>
             </div>
 
             <button
               onClick={handleSignOut}
-              className="rounded-full border border-[rgba(224,211,255,0.92)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96)_0%,rgba(245,240,255,0.96)_52%,rgba(239,245,255,0.96)_100%)] p-2 text-[#657598] shadow-[0_8px_22px_rgba(189,181,236,0.14)] hover:text-[#c448f4]"
+              className="rounded-full border border-[rgba(224,211,255,0.92)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96)_0%,rgba(245,240,255,0.96)_52%,rgba(239,245,255,0.96)_100%)] p-1.5 text-[#657598] shadow-[0_8px_22px_rgba(189,181,236,0.14)] hover:text-[#c448f4]"
               title="Sign Out"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-4.5 w-4.5" />
             </button>
 
             <button

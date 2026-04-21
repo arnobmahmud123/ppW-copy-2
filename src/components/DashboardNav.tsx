@@ -5,12 +5,15 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { 
   Bell,
+  Brain,
   Building2,
   Home, 
   FileText, 
   Users, 
   DollarSign, 
   MessageSquare, 
+  Boxes,
+  GraduationCap,
   LogOut,
   Menu,
   X
@@ -40,14 +43,15 @@ export default function DashboardNav() {
   const [unreadCount, setUnreadCount] = useState(0)
 
   const role = session?.user.role
+  const sessionUserId = session?.user?.id
 
   useEffect(() => {
-    if (!session?.user) return
+    if (!sessionUserId) return
     void fetchNotifications()
-  }, [session?.user?.id])
+  }, [sessionUserId])
 
   useEffect(() => {
-    if (!session?.user) return
+    if (!sessionUserId) return
 
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "visible") {
@@ -56,7 +60,7 @@ export default function DashboardNav() {
     }, 5000)
 
     return () => window.clearInterval(intervalId)
-  }, [session?.user?.id])
+  }, [sessionUserId])
 
   const fetchNotifications = async () => {
     try {
@@ -131,10 +135,13 @@ export default function DashboardNav() {
         ...baseItems,
         { name: "All Work Orders", href: "/dashboard/admin/work-orders", icon: FileText },
         { name: "Properties", href: "/dashboard/admin/properties", icon: Building2 },
+        { name: "Assets", href: "/dashboard/admin/assets", icon: Boxes },
         { name: "Coordinators", href: "/dashboard/admin/coordinators", icon: Users },
         { name: "Users", href: "/dashboard/admin/users", icon: Users },
         { name: "Contractors", href: "/dashboard/admin/contractors", icon: Users },
         { name: "Billing", href: "/dashboard/admin/billing", icon: DollarSign },
+        { name: "Operations AI", href: "/dashboard/admin/operations-ai", icon: Brain },
+        { name: "Training", href: "/dashboard/admin/training", icon: GraduationCap },
         { name: "Messages", href: "/dashboard/admin/messages", icon: MessageSquare },
         { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
         { name: "Support", href: "/dashboard/admin/support", icon: MessageSquare },

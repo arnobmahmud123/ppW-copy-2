@@ -291,6 +291,7 @@ model User {
   assignedSupportTickets               SupportTicket[]                       @relation("SupportTicketAssignedTo")
   closedSupportTickets                 SupportTicket[]                       @relation("SupportTicketClosedBy")
   supportTicketComments                SupportTicketComment[]                @relation("SupportTicketCommentCreatedBy")
+  createdAICallAutomations             AICallAutomation[]                    @relation("AICallAutomationCreatedBy")
 }
 
 /// Work orders submitted by clients and fulfilled by contractors
@@ -1075,4 +1076,29 @@ model InvoiceItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AICallAutomation {
+  id                String   @id @default(cuid())
+  name              String
+  status            String   @default("ACTIVE")
+  audienceType      String
+  triggerType       String
+  voiceProfile      String?
+  instructions      String
+  destinationType   String   @default("PHONE")
+  phoneField        String?
+  scheduleSummary   String?
+  escalationEnabled Boolean  @default(false)
+  nextRunAt         DateTime?
+  lastRunAt         DateTime?
+  createdByUserId   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  createdByUser User? @relation("AICallAutomationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextRunAt])
+  @@index([audienceType, status])
+  @@map("ai_call_automations")
 }

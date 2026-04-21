@@ -1364,11 +1364,14 @@ export function MessageSupportCenter({
                               view: safeWorkspace.view,
                               thread: thread.id,
                               tab: activeTab,
-                              search: safeWorkspace.search,
                             })}
                             onClick={() => {
                               setPaneConversationMode("conversation");
                               setHeaderSelectionMode("thread");
+                              setMobileActiveTab("chat");
+                              setLocalSearch("");
+                              setTopSearchOpen(false);
+                              setOpenFilterMenu(null);
                             }}
                             className={cn(
                               "app-hover-lift relative overflow-hidden flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
@@ -1498,11 +1501,14 @@ export function MessageSupportCenter({
                                 view: safeWorkspace.view,
                                 thread: thread.id,
                                 tab: activeTab,
-                                search: safeWorkspace.search,
                               })}
                               onClick={() => {
                                 setPaneConversationMode("conversation");
                                 setHeaderSelectionMode("thread");
+                                setMobileActiveTab("chat");
+                                setLocalSearch("");
+                                setTopSearchOpen(false);
+                                setOpenFilterMenu(null);
                               }}
                               className={cn(
                                 "relative flex items-start gap-3 rounded-xl px-3 py-2.5 pl-9 transition",
@@ -1565,11 +1571,14 @@ export function MessageSupportCenter({
                               view: safeWorkspace.view,
                               thread: thread.id,
                               tab: activeTab,
-                              search: safeWorkspace.search,
                             })}
                             onClick={() => {
                               setPaneConversationMode("conversation");
                               setHeaderSelectionMode("thread");
+                              setMobileActiveTab("chat");
+                              setLocalSearch("");
+                              setTopSearchOpen(false);
+                              setOpenFilterMenu(null);
                             }}
                             className={cn(
                               "relative overflow-hidden flex items-start gap-3 rounded-xl px-3 py-2.5 transition",

@@ -3,7 +3,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { Route } from "next";
 import {
   AtSign,
@@ -89,10 +89,18 @@ function getRailItems(userType: string | null | undefined) {
     : role === "PROCESSOR" ? "/dashboard/processor/work-orders"
     : "/dashboard/admin/work-orders";
 
+  const messagesHref =
+    role === "ADMIN" ? "/dashboard/admin/messages"
+    : role === "CLIENT" ? "/dashboard/client/messages"
+    : role === "CONTRACTOR" ? "/dashboard/contractor/messages"
+    : role === "COORDINATOR" ? "/dashboard/coordinator/messages"
+    : role === "PROCESSOR" ? "/dashboard/processor/messages"
+    : "/messages";
+
   return [
     { icon: Home, href: dashboardHref as Route, label: "Dashboard", active: false },
     { icon: ClipboardList, href: workOrdersHref as Route, label: "Work Orders", active: false },
-    { icon: MessageCircleReply, href: "/messages" as Route, label: "Messages", active: true },
+    { icon: MessageCircleReply, href: messagesHref as Route, label: "Messages", active: true },
   ];
 }
 
@@ -115,6 +123,7 @@ const categoryIcons = {
 } as const;
 
 function buildMessagesHref(params: {
+  basePath?: string;
   view?: string;
   thread?: string;
   tab?: string;
@@ -130,6 +139,7 @@ function buildMessagesHref(params: {
   onlyMine?: boolean;
 }) {
   const searchParams = new URLSearchParams();
+  const basePath = params.basePath || "/messages";
 
   if (params.view) {
     searchParams.set("view", params.view);
@@ -184,7 +194,7 @@ function buildMessagesHref(params: {
   }
 
   const query = searchParams.toString();
-  return (query ? `/messages?${query}` : "/messages") as Route;
+  return (query ? `${basePath}?${query}` : basePath) as Route;
 }
 
 function formatRelativeTime(date: Date) {
@@ -346,6 +356,7 @@ export function MessageSupportCenter({
   viewportClassName,
 }: MessageSupportCenterProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const railItems = getRailItems(session.userType);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileActiveTab, setMobileActiveTab] = useState<"inbox" | "chat">("inbox");
@@ -370,6 +381,13 @@ export function MessageSupportCenter({
   const topSearchInputRef = useRef<HTMLInputElement | null>(null);
   const deferredLocalSearch = useDeferredValue(localSearch);
   const requestedConversationMode = initialConversationMode;
+  const messagesBasePath = useMemo(() => {
+    if (!pathname) {
+      return "/messages";
+    }
+
+    return pathname.endsWith("/messages") ? pathname : "/messages";
+  }, [pathname]);
 
   // Sync sidebar thread list when server re-renders (router.refresh)
   useEffect(() => {
@@ -506,6 +524,7 @@ export function MessageSupportCenter({
         }));
 
   const helperHref = buildMessagesHref({
+    basePath: messagesBasePath,
     view: safeWorkspace.view,
     thread: selectedThreadId ?? safeWorkspace.threads[0]?.id,
     tab: "conversation",
@@ -562,6 +581,7 @@ export function MessageSupportCenter({
   const applySearchFilters = (nextFilters: Partial<typeof safeWorkspace.filters>) => {
     router.push(
       buildMessagesHref({
+        basePath: messagesBasePath,
         view: safeWorkspace.view,
         thread: selectedThreadId ?? safeWorkspace.threads[0]?.id,
         tab: activeTab,
@@ -821,6 +841,7 @@ export function MessageSupportCenter({
       icon: Home,
       count: safeWorkspace.totals.all,
       href: buildMessagesHref({
+        basePath: messagesBasePath,
         view: "all",
         thread: selectedThreadId ?? safeWorkspace.threads[0]?.id,
         tab: activeTab,
@@ -834,6 +855,7 @@ export function MessageSupportCenter({
       icon: AtSign,
       count: safeWorkspace.totals.mentions || 0,
       href: buildMessagesHref({
+        basePath: messagesBasePath,
         view: "mentions",
         thread: selectedThreadId ?? safeWorkspace.threads[0]?.id,
         tab: activeTab,
@@ -847,6 +869,7 @@ export function MessageSupportCenter({
       icon: Star,
       count: safeWorkspace.totals.pinned,
       href: buildMessagesHref({
+        basePath: messagesBasePath,
         view: "pinned",
         thread: selectedThreadId ?? safeWorkspace.threads[0]?.id,
         tab: activeTab,
@@ -915,6 +938,7 @@ export function MessageSupportCenter({
     setOpenFilterMenu(null);
     router.push(
       buildMessagesHref({
+        basePath: messagesBasePath,
         view: safeWorkspace.view,
         thread: threadId,
         tab: "conversation",
@@ -1129,6 +1153,7 @@ export function MessageSupportCenter({
                     <Link
                       key={category.key}
                       href={buildMessagesHref({
+                        basePath: messagesBasePath,
                         view: category.key,
                         thread: selectedThreadId ?? safeWorkspace.threads[0]?.id,
                         tab: activeTab,
@@ -1335,6 +1360,7 @@ export function MessageSupportCenter({
                           <Link
                             key={thread.id}
                             href={buildMessagesHref({
+                              basePath: messagesBasePath,
                               view: safeWorkspace.view,
                               thread: thread.id,
                               tab: activeTab,
@@ -1468,6 +1494,7 @@ export function MessageSupportCenter({
                             </div>
                             <Link
                               href={buildMessagesHref({
+                                basePath: messagesBasePath,
                                 view: safeWorkspace.view,
                                 thread: thread.id,
                                 tab: activeTab,
@@ -1534,6 +1561,7 @@ export function MessageSupportCenter({
                           <Link
                             key={thread.id}
                             href={buildMessagesHref({
+                              basePath: messagesBasePath,
                               view: safeWorkspace.view,
                               thread: thread.id,
                               tab: activeTab,

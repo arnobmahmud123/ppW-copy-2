@@ -931,19 +931,21 @@ export function MessageSupportCenter({
   const filteredChannelThreads = useMemo(() => channelThreads, [channelThreads]);
 
   const openSearchResultThread = (threadId: string) => {
+    const href = buildMessagesHref({
+      basePath: messagesBasePath,
+      view: safeWorkspace.view,
+      thread: threadId,
+      tab: "conversation",
+    });
+
     setHeaderSelectionMode("thread");
     setPaneConversationMode("conversation");
     setMobileActiveTab("chat");
     setLocalSearch("");
+    setTopSearchOpen(false);
     setOpenFilterMenu(null);
-    router.push(
-      buildMessagesHref({
-        basePath: messagesBasePath,
-        view: safeWorkspace.view,
-        thread: threadId,
-        tab: "conversation",
-      })
-    );
+    router.push(href);
+    router.refresh();
   };
 
   const fallbackSearchResults = useMemo(() => {
@@ -1356,22 +1358,26 @@ export function MessageSupportCenter({
                     <div className="space-y-1">
                       {directThreads.map((thread) => {
                         const active = selectedThreadId === thread.id;
+                        const threadHref = buildMessagesHref({
+                          basePath: messagesBasePath,
+                          view: safeWorkspace.view,
+                          thread: thread.id,
+                          tab: activeTab,
+                        });
                         return (
                           <Link
                             key={thread.id}
-                            href={buildMessagesHref({
-                              basePath: messagesBasePath,
-                              view: safeWorkspace.view,
-                              thread: thread.id,
-                              tab: activeTab,
-                            })}
-                            onClick={() => {
+                            href={threadHref}
+                            onClick={(event) => {
+                              event.preventDefault();
                               setPaneConversationMode("conversation");
                               setHeaderSelectionMode("thread");
                               setMobileActiveTab("chat");
                               setLocalSearch("");
                               setTopSearchOpen(false);
                               setOpenFilterMenu(null);
+                              router.push(threadHref);
+                              router.refresh();
                             }}
                             className={cn(
                               "app-hover-lift relative overflow-hidden flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
@@ -1467,6 +1473,12 @@ export function MessageSupportCenter({
                     <div className="space-y-1">
                       {filteredChannelThreads.map((thread) => {
                         const active = selectedThreadId === thread.id;
+                        const threadHref = buildMessagesHref({
+                          basePath: messagesBasePath,
+                          view: safeWorkspace.view,
+                          thread: thread.id,
+                          tab: activeTab,
+                        });
                         return (
                           <div
                             key={thread.id}
@@ -1496,19 +1508,17 @@ export function MessageSupportCenter({
                               <GripVertical className="h-3.5 w-3.5" />
                             </div>
                             <Link
-                              href={buildMessagesHref({
-                                basePath: messagesBasePath,
-                                view: safeWorkspace.view,
-                                thread: thread.id,
-                                tab: activeTab,
-                              })}
-                              onClick={() => {
+                              href={threadHref}
+                              onClick={(event) => {
+                                event.preventDefault();
                                 setPaneConversationMode("conversation");
                                 setHeaderSelectionMode("thread");
                                 setMobileActiveTab("chat");
                                 setLocalSearch("");
                                 setTopSearchOpen(false);
                                 setOpenFilterMenu(null);
+                                router.push(threadHref);
+                                router.refresh();
                               }}
                               className={cn(
                                 "relative flex items-start gap-3 rounded-xl px-3 py-2.5 pl-9 transition",
@@ -1563,22 +1573,26 @@ export function MessageSupportCenter({
                         const hasUnread = (thread.unreadCount ?? 0) > 0;
                         const woNumber = thread.workOrder?.workOrderNumber ?? thread.displayName ?? threadDisplayLabel(thread);
                         const address = thread.workOrder?.addressLine1 ?? thread.latestMessage?.body ?? "";
+                        const threadHref = buildMessagesHref({
+                          basePath: messagesBasePath,
+                          view: safeWorkspace.view,
+                          thread: thread.id,
+                          tab: activeTab,
+                        });
                         return (
                           <Link
                             key={thread.id}
-                            href={buildMessagesHref({
-                              basePath: messagesBasePath,
-                              view: safeWorkspace.view,
-                              thread: thread.id,
-                              tab: activeTab,
-                            })}
-                            onClick={() => {
+                            href={threadHref}
+                            onClick={(event) => {
+                              event.preventDefault();
                               setPaneConversationMode("conversation");
                               setHeaderSelectionMode("thread");
                               setMobileActiveTab("chat");
                               setLocalSearch("");
                               setTopSearchOpen(false);
                               setOpenFilterMenu(null);
+                              router.push(threadHref);
+                              router.refresh();
                             }}
                             className={cn(
                               "relative overflow-hidden flex items-start gap-3 rounded-xl px-3 py-2.5 transition",

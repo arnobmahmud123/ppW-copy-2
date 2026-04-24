@@ -3697,7 +3697,7 @@ function handleKeyDown(
 
             {/* Content Area */}
             <div className={cn(
-              "grid min-h-0 flex-1",
+              "grid h-full min-h-0 flex-1 grid-rows-1",
               replyTo ? "grid-cols-1 xl:grid-cols-[1fr_400px]" : "grid-cols-1"
             )}>
               <div className={cn("relative flex min-h-0 h-full flex-col", conversationMode === "ai" ? "overflow-y-auto overscroll-contain" : "overflow-hidden")}>
@@ -4824,7 +4824,7 @@ function handleKeyDown(
 	                 <div
                     ref={mainComposerShellRef}
                     className="absolute inset-x-0 bottom-0 z-20 shrink-0 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] p-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
-                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+                    style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                   >
                     <div className="mx-auto w-full max-w-[1080px]">
                     <div
@@ -5448,7 +5448,7 @@ onClick={() => {
                       onDragOver={(event) => handleComposerDragOver(event, "thread")}
                       onDragLeave={(event) => handleComposerDragLeave(event, "thread")}
                       onDrop={(event) => handleComposerDrop(event, "thread")}
-                      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+                        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                     >
                         {dragTarget === "thread" && (
                           <div className="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-violet-300 bg-white/80">

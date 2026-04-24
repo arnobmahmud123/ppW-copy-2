@@ -1744,7 +1744,7 @@ export function MessageSupportCenter({
               </button>
             )}
             {selectedThread ? (
-              <div className={cn("flex min-h-0 flex-1 flex-col", localSearch.trim() ? "pt-[94px]" : "pt-0")}>
+              <div className={cn("flex h-full min-h-0 flex-1 flex-col overflow-hidden", localSearch.trim() ? "pt-[94px]" : "pt-0")}>
               {localSearch.trim() ? (
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
                   <div className="mx-auto max-w-[1120px] space-y-5">

@@ -540,7 +540,7 @@ export default function MessagesWorkspace({ roleLabel, accentClass }: Props) {
               <div
                 ref={composerShellRef}
                 className="absolute inset-x-0 bottom-0 z-20 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] px-6 py-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
-                style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+                style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
               >
                 <div className="rounded-[24px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_100%)] p-4 shadow-[0_12px_28px_rgba(196,186,255,0.16)]">
                   <textarea

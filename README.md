@@ -38,7 +38,8 @@ The repo includes Prisma-based seed scripts in `/prisma` plus a reusable bulk de
 This app is prepared for a Vercel-friendly Postgres deployment flow:
 
 - Prisma client is generated on install via `postinstall`
-- Prisma migrations and demo data seeding run during `npm run build`
+- The default `npm run build` is compile-only for reliable Vercel deployments
+- Use `npm run build:full` when you intentionally want Prisma migrations and demo seeding to run before the app build
 - The app expects a Postgres `DATABASE_URL`
 
 If you need a compile-only build without touching the database, use:

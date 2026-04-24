@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run db:prepare && npm run build:app",
+    "build": "npm run build:app",
     "build:app": "next build --turbopack",
-    "build:full": "npm run build",
+    "build:full": "npm run db:prepare && npm run build:app",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",

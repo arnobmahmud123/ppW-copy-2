@@ -63,7 +63,9 @@ export default function MessagesWorkspace({ roleLabel, accentClass }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<string>("")
   const threadViewportRef = useRef<HTMLDivElement | null>(null)
+  const composerShellRef = useRef<HTMLDivElement | null>(null)
   const activeMarkingRef = useRef<string>("")
+  const [composerReserveHeight, setComposerReserveHeight] = useState(184)
 
   useEffect(() => {
     void syncWorkspace({ initial: true })
@@ -275,6 +277,28 @@ export default function MessagesWorkspace({ roleLabel, accentClass }: Props) {
     }
   }, [activeConversation?.workOrder.id])
 
+  useEffect(() => {
+    const composerShell = composerShellRef.current
+    if (!composerShell) {
+      return
+    }
+
+    const updateHeight = () => {
+      const nextHeight = Math.ceil(composerShell.getBoundingClientRect().height) + 24
+      setComposerReserveHeight((current) => (current === nextHeight ? current : nextHeight))
+    }
+
+    updateHeight()
+
+    if (typeof ResizeObserver === "undefined") {
+      return
+    }
+
+    const observer = new ResizeObserver(() => updateHeight())
+    observer.observe(composerShell)
+    return () => observer.disconnect()
+  }, [activeConversation?.workOrder.id])
+
   const sendMessage = async () => {
     if (!draft.trim() || !activeConversation?.workOrder.id) {
       return
@@ -416,7 +440,7 @@ export default function MessagesWorkspace({ roleLabel, accentClass }: Props) {
           </div>
         </aside>
 
-        <main className="flex min-h-0 flex-col bg-[linear-gradient(180deg,#ffffff_0%,#f9f5ff_52%,#eef4ff_100%)]">
+        <main className="relative flex min-h-0 flex-col bg-[linear-gradient(180deg,#ffffff_0%,#f9f5ff_52%,#eef4ff_100%)]">
           {activeConversation ? (
             <>
               <div className="border-b border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_100%)] px-6 py-5 text-[#435072]">
@@ -460,6 +484,10 @@ export default function MessagesWorkspace({ roleLabel, accentClass }: Props) {
               <div
                 ref={threadViewportRef}
                 className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-transparent px-6 py-6"
+                style={{
+                  paddingBottom: `${composerReserveHeight}px`,
+                  scrollPaddingBottom: `${composerReserveHeight + 24}px`,
+                }}
               >
                 {threadMessages.length === 0 ? (
                   <div className="flex h-full min-h-[280px] items-center justify-center">
@@ -509,7 +537,11 @@ export default function MessagesWorkspace({ roleLabel, accentClass }: Props) {
                 )}
               </div>
 
-              <div className="border-t border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_100%)] px-6 py-5">
+              <div
+                ref={composerShellRef}
+                className="absolute inset-x-0 bottom-0 z-20 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] px-6 py-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
+                style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+              >
                 <div className="rounded-[24px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_100%)] p-4 shadow-[0_12px_28px_rgba(196,186,255,0.16)]">
                   <textarea
                     value={draft}

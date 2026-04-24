@@ -1022,6 +1022,8 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const threadComposerRef = useRef<HTMLTextAreaElement>(null);
   const assistantComposerRef = useRef<HTMLTextAreaElement>(null);
+  const mainComposerShellRef = useRef<HTMLDivElement>(null);
+  const threadComposerShellRef = useRef<HTMLDivElement>(null);
   const channelSearchInputRef = useRef<HTMLInputElement>(null);
   const threadPanelScrollRef = useRef<HTMLDivElement>(null);
   const composeFileInputRef = useRef<HTMLInputElement>(null);
@@ -1033,6 +1035,52 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
   const messageAudioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const lastTimelineCountRef = useRef(workspace.timeline?.length ?? 0);
   const isProcessingQueueRef = useRef(false);
+  const [mainComposerReserveHeight, setMainComposerReserveHeight] = useState(208);
+  const [threadComposerReserveHeight, setThreadComposerReserveHeight] = useState(184);
+
+  useEffect(() => {
+    const composerShell = mainComposerShellRef.current;
+    if (!composerShell) {
+      return;
+    }
+
+    const updateHeight = () => {
+      const nextHeight = Math.ceil(composerShell.getBoundingClientRect().height) + 24;
+      setMainComposerReserveHeight((current) => (current === nextHeight ? current : nextHeight));
+    };
+
+    updateHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => updateHeight());
+    observer.observe(composerShell);
+    return () => observer.disconnect();
+  }, [conversationMode]);
+
+  useEffect(() => {
+    const composerShell = threadComposerShellRef.current;
+    if (!composerShell) {
+      return;
+    }
+
+    const updateHeight = () => {
+      const nextHeight = Math.ceil(composerShell.getBoundingClientRect().height) + 24;
+      setThreadComposerReserveHeight((current) => (current === nextHeight ? current : nextHeight));
+    };
+
+    updateHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => updateHeight());
+    observer.observe(composerShell);
+    return () => observer.disconnect();
+  }, [replyTo]);
 
   const mentionableUsersById = useMemo(() => {
     return new Map(mentionableUsers.map((u) => [u.id, u]));
@@ -3652,11 +3700,19 @@ function handleKeyDown(
               "grid min-h-0 flex-1",
               replyTo ? "grid-cols-1 xl:grid-cols-[1fr_400px]" : "grid-cols-1"
             )}>
-              <div className={cn("flex min-h-0 h-full flex-col", conversationMode === "ai" ? "overflow-y-auto overscroll-contain" : "overflow-hidden")}>
+              <div className={cn("relative flex min-h-0 h-full flex-col", conversationMode === "ai" ? "overflow-y-auto overscroll-contain" : "overflow-hidden")}>
                  <div className={cn(
                    "min-h-0 flex-1 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] px-5 py-6",
                    conversationMode === "ai" ? "overflow-visible" : "overflow-y-auto overscroll-contain"
-                 )}>
+                 )}
+                 style={
+                   conversationMode === "ai"
+                     ? undefined
+                     : {
+                         paddingBottom: `${mainComposerReserveHeight}px`,
+                         scrollPaddingBottom: `${mainComposerReserveHeight + 24}px`,
+                       }
+                 }>
                     <div className="mx-auto mb-6 flex w-full max-w-[1080px] items-center justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex min-w-0 items-center gap-2">
@@ -4499,7 +4555,7 @@ function handleKeyDown(
                           </div>
                        </div>
                     ) : conversationMode === "ai" ? (
-                       <div className="mx-auto w-full max-w-[1080px] space-y-5 pb-16">
+                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-4 pb-4">
                           <div className="rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-5 shadow-sm">
                              <div className="flex items-start justify-between gap-4">
                                 <div>
@@ -4521,113 +4577,143 @@ function handleKeyDown(
                                 </button>
                              </div>
                           </div>
-                          <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-                             <div className="rounded-3xl border border-fuchsia-100 bg-white p-6 shadow-sm">
-                                <div className="flex items-center justify-between gap-3">
-                                   <div>
-                                      <div className="flex items-center gap-2">
-                                         <Sparkles className="h-5 w-5 text-fuchsia-600" />
-                                         <h3 className="text-lg font-bold text-slate-900">AI workspace</h3>
-                                      </div>
-                                      <p className="mt-2 text-sm text-slate-500">Smart replies, summaries, action items, meeting notes, and natural-language help for this thread.</p>
-                                   </div>
-                                   <button type="button" onClick={() => void loadAiInsights()} className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100">
-                                      <Sparkles className="h-4 w-4" />
-                                      {loadingAi ? "Refreshing..." : "Refresh AI"}
-                                   </button>
+                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
+                             <div className="shrink-0 border-b border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
+                                <div className="flex items-center gap-2">
+                                   <Sparkles className="h-5 w-5 text-fuchsia-600" />
+                                   <h3 className="text-lg font-bold text-slate-900">Ask the helper</h3>
                                 </div>
-                                <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                                   <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
-                                      <h4 className="text-sm font-bold text-slate-900">Smart replies</h4>
-                                      <div className="mt-3 flex flex-wrap gap-2">
-                                         {(aiInsights?.smartReplies ?? []).length === 0 ? (
-                                           <p className="text-sm text-slate-500">Open this tab to generate reply suggestions from the latest conversation.</p>
-                                         ) : (
-                                           (aiInsights?.smartReplies ?? []).map((reply, index) => (
-                                             <button
-                                               key={`${reply}-${index}`}
-                                               type="button"
-                                               onClick={() => {
-                                                 setComposeBody(reply);
-                                                 setConversationMode("conversation");
-                                                 window.setTimeout(() => composerRef.current?.focus(), 0);
-                                               }}
-                                               className="rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-left text-sm font-medium text-violet-800 transition hover:bg-violet-100"
-                                             >
-                                               {reply}
-                                             </button>
-                                           ))
-                                         )}
-                                      </div>
-                                   </div>
-                                   <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
-                                      <h4 className="text-sm font-bold text-slate-900">Meeting notes & action items</h4>
-                                      <div className="mt-3 space-y-3">
-                                         {(aiInsights?.actionItems ?? []).length === 0 ? (
-                                           <p className="text-sm text-slate-500">No action items extracted yet.</p>
-                                         ) : (
-                                           (aiInsights?.actionItems ?? []).slice(0, 5).map((item) => (
-                                             <div key={item.id} className="rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3">
-                                               <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                                               <p className="mt-1 text-xs text-slate-500">Owner signal: {item.owner}</p>
-                                             </div>
-                                           ))
-                                         )}
-                                      </div>
-                                   </div>
-                                </div>
-                                <div className="mt-5 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f9f5ff_100%)] p-4">
-                                   <h4 className="text-sm font-bold text-slate-900">Thread summary</h4>
-                                   <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-                                      {(aiInsights?.summary ?? []).length === 0 ? (
-                                        <p>{loadingAi ? "Loading AI summary..." : "No summary generated yet."}</p>
-                                      ) : (
-                                        (aiInsights?.summary ?? []).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)
-                                      )}
+                                <p className="mt-2 text-sm text-slate-500">Start with the chat composer here. The answer shows next, and the extra AI tools stay docked below.</p>
+                                <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-4 shadow-sm">
+                                   <textarea
+                                     ref={assistantComposerRef}
+                                     value={assistantPrompt}
+                                     onChange={(event) => setAssistantPrompt(event.target.value)}
+                                     onKeyDown={(event) => {
+                                       if (event.key === "Enter" && !event.shiftKey) {
+                                         event.preventDefault();
+                                         void runAssistantPrompt();
+                                       }
+                                     }}
+                                     placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
+                                     rows={6}
+                                     className="w-full resize-none bg-transparent px-2 py-2 text-base text-slate-900 outline-none placeholder:text-slate-400"
+                                   />
+                                   <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 px-2 pt-3">
+                                      <p className="text-xs text-slate-400">Press Enter to send, Shift+Enter for a new line</p>
+                                      <button
+                                        type="button"
+                                        onClick={() => void runAssistantPrompt()}
+                                        disabled={runningAssistant || !assistantPrompt.trim()}
+                                        className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-4 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                                        aria-label="Send message to helper"
+                                      >
+                                        {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
+                                        {runningAssistant ? "Thinking..." : "Ask helper"}
+                                      </button>
                                    </div>
                                 </div>
                              </div>
-                             <div className="space-y-5">
-                                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                   <h3 className="text-base font-bold text-slate-900">Chat with helper</h3>
-                                   <p className="mt-2 text-sm text-slate-500">Ask naturally, like you would ask a teammate. The helper will use this thread and connected documents to answer.</p>
-                                   <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-3 shadow-sm">
-                                      <textarea
-                                        ref={assistantComposerRef}
-                                        value={assistantPrompt}
-                                        onChange={(event) => setAssistantPrompt(event.target.value)}
-                                        onKeyDown={(event) => {
-                                          if (event.key === "Enter" && !event.shiftKey) {
-                                            event.preventDefault();
-                                            void runAssistantPrompt();
-                                          }
-                                        }}
-                                        placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
-                                        rows={4}
-                                        className="w-full resize-none bg-transparent px-2 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                                      />
-                                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 px-2 pt-3">
-                                         <p className="text-xs text-slate-400">Press Enter to send, Shift+Enter for a new line</p>
-                                         <button
-                                           type="button"
-                                           onClick={() => void runAssistantPrompt()}
-                                           disabled={runningAssistant || !assistantPrompt.trim()}
-                                           className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-                                           aria-label="Send message to helper"
-                                         >
-                                           {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
+                             <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
+                                <div className="space-y-5">
+                                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                      <div className="flex items-center justify-between gap-3">
+                                         <div>
+                                            <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
+                                            <p className="mt-2 text-sm text-slate-500">Your helper result stays directly below the composer.</p>
+                                         </div>
+                                         <button type="button" onClick={() => void loadAiInsights()} className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100">
+                                            <Sparkles className="h-4 w-4" />
+                                            {loadingAi ? "Refreshing..." : "Refresh AI"}
                                          </button>
                                       </div>
+                                      <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
+                                         {assistantAnswer ? (
+                                           <>
+                                              <p className="text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
+                                             {assistantAnswer.citations.length > 0 ? (
+                                               <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
+                                             ) : null}
+                                           </>
+                                         ) : (
+                                           <p className="text-sm text-slate-500">{runningAssistant ? "Working on your answer..." : "Ask a question above to start the helper conversation."}</p>
+                                         )}
+                                      </div>
                                    </div>
-                                   {assistantAnswer ? (
-                                     <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
-                                        <p className="text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
-                                       {assistantAnswer.citations.length > 0 ? (
-                                         <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
-                                       ) : null}
-                                     </div>
-                                   ) : null}
+                                   <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+                                      <div className="rounded-3xl border border-fuchsia-100 bg-white p-6 shadow-sm">
+                                         <div className="flex items-center gap-2">
+                                            <Sparkles className="h-5 w-5 text-fuchsia-600" />
+                                            <h3 className="text-lg font-bold text-slate-900">AI workspace</h3>
+                                         </div>
+                                         <p className="mt-2 text-sm text-slate-500">Smart replies, summaries, action items, meeting notes, and natural-language help for this thread.</p>
+                                         <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                                            <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
+                                               <h4 className="text-sm font-bold text-slate-900">Smart replies</h4>
+                                               <div className="mt-3 flex flex-wrap gap-2">
+                                                  {(aiInsights?.smartReplies ?? []).length === 0 ? (
+                                                    <p className="text-sm text-slate-500">Open this tab to generate reply suggestions from the latest conversation.</p>
+                                                  ) : (
+                                                    (aiInsights?.smartReplies ?? []).map((reply, index) => (
+                                                      <button
+                                                        key={`${reply}-${index}`}
+                                                        type="button"
+                                                        onClick={() => {
+                                                          setComposeBody(reply);
+                                                          setConversationMode("conversation");
+                                                          window.setTimeout(() => composerRef.current?.focus(), 0);
+                                                        }}
+                                                        className="rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-left text-sm font-medium text-violet-800 transition hover:bg-violet-100"
+                                                      >
+                                                        {reply}
+                                                      </button>
+                                                    ))
+                                                  )}
+                                               </div>
+                                            </div>
+                                            <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
+                                               <h4 className="text-sm font-bold text-slate-900">Meeting notes & action items</h4>
+                                               <div className="mt-3 space-y-3">
+                                                  {(aiInsights?.actionItems ?? []).length === 0 ? (
+                                                    <p className="text-sm text-slate-500">No action items extracted yet.</p>
+                                                  ) : (
+                                                    (aiInsights?.actionItems ?? []).slice(0, 5).map((item) => (
+                                                      <div key={item.id} className="rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3">
+                                                        <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                                                        <p className="mt-1 text-xs text-slate-500">Owner signal: {item.owner}</p>
+                                                      </div>
+                                                    ))
+                                                  )}
+                                               </div>
+                                            </div>
+                                         </div>
+                                         <div className="mt-5 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f9f5ff_100%)] p-4">
+                                            <h4 className="text-sm font-bold text-slate-900">Thread summary</h4>
+                                            <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
+                                               {(aiInsights?.summary ?? []).length === 0 ? (
+                                                 <p>{loadingAi ? "Loading AI summary..." : "No summary generated yet."}</p>
+                                               ) : (
+                                                 (aiInsights?.summary ?? []).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)
+                                               )}
+                                            </div>
+                                         </div>
+                                      </div>
+                                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                         <h3 className="text-base font-bold text-slate-900">Meeting notes extraction</h3>
+                                         <div className="mt-3 space-y-2 text-sm text-slate-600">
+                                            {(aiInsights?.meetingNotes ?? []).length === 0 ? (
+                                              <p>No meeting-style notes detected yet.</p>
+                                            ) : (
+                                              (aiInsights?.meetingNotes ?? []).map((line, index) => (
+                                                <div key={`${line}-${index}`} className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf8ff_100%)] px-4 py-3">{line}</div>
+                                              ))
+                                            )}
+                                         </div>
+                                      </div>
+                                   </div>
                                 </div>
+                             </div>
+                             <div className="shrink-0 border-t border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
                                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                    <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
                                    <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions like “latest invoice file” or “who mentioned inspection photos”.</p>
@@ -4680,18 +4766,6 @@ function handleKeyDown(
                                             ))}
                                          </div>
                                       </div>
-                                   </div>
-                                </div>
-                                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                   <h3 className="text-base font-bold text-slate-900">Meeting notes extraction</h3>
-                                   <div className="mt-3 space-y-2 text-sm text-slate-600">
-                                      {(aiInsights?.meetingNotes ?? []).length === 0 ? (
-                                        <p>No meeting-style notes detected yet.</p>
-                                      ) : (
-                                        (aiInsights?.meetingNotes ?? []).map((line, index) => (
-                                          <div key={`${line}-${index}`} className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf8ff_100%)] px-4 py-3">{line}</div>
-                                        ))
-                                      )}
                                    </div>
                                 </div>
                              </div>
@@ -4747,7 +4821,11 @@ function handleKeyDown(
 
                  {/* Composer */}
 	                 {conversationMode !== "ai" ? (
-	                 <div className="mt-auto shrink-0 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_100%)] p-5">
+	                 <div
+                    ref={mainComposerShellRef}
+                    className="absolute inset-x-0 bottom-0 z-20 shrink-0 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] p-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
+                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+                  >
                     <div className="mx-auto w-full max-w-[1080px]">
                     <div
                       className={cn(
@@ -5220,12 +5298,19 @@ onClick={() => {
 
               {/* Thread Side Panel */}
               {replyTo && (
-                 <aside className="hidden xl:flex min-h-0 h-full flex-col border-l border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)]">
+                 <aside className="relative hidden xl:flex min-h-0 h-full flex-col overflow-hidden border-l border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)]">
                     <div className="flex items-center justify-between border-b border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] px-5 py-4">
                        <h3 className="font-bold text-slate-900">Thread</h3>
                        <button onClick={() => setReplyTo(null)} className="rounded-full bg-slate-50 p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"><X className="h-4 w-4" /></button>
                     </div>
-                    <div ref={threadPanelScrollRef} className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5 space-y-4">
+                    <div
+                      ref={threadPanelScrollRef}
+                      className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5 space-y-4"
+                      style={{
+                        paddingBottom: `${threadComposerReserveHeight}px`,
+                        scrollPaddingBottom: `${threadComposerReserveHeight + 24}px`,
+                      }}
+                    >
                        <div className="rounded-2xl border border-[#e8defe] bg-[linear-gradient(135deg,rgba(255,247,252,0.95)_0%,rgba(239,245,255,0.92)_100%)] px-4 py-3 shadow-[0_18px_36px_-30px_rgba(168,85,247,0.4)]">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
@@ -5353,8 +5438,9 @@ onClick={() => {
                        ))}
                     </div>
                     <div
+                      ref={threadComposerShellRef}
                       className={cn(
-                        "relative border-t border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4",
+                        "absolute inset-x-0 bottom-0 z-20 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.95)_0%,rgba(251,247,255,0.98)_100%)] p-4 shadow-[0_-14px_36px_-28px_rgba(139,92,246,0.32)] backdrop-blur-sm",
                         dragTarget === "thread"
                           ? "bg-[linear-gradient(180deg,#fffaff_0%,#f5f8ff_100%)]"
                           : ""
@@ -5362,6 +5448,7 @@ onClick={() => {
                       onDragOver={(event) => handleComposerDragOver(event, "thread")}
                       onDragLeave={(event) => handleComposerDragLeave(event, "thread")}
                       onDrop={(event) => handleComposerDrop(event, "thread")}
+                      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
                     >
                         {dragTarget === "thread" && (
                           <div className="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-violet-300 bg-white/80">

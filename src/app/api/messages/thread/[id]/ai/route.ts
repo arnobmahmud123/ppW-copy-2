@@ -530,7 +530,14 @@ async function loadFocusedWorkOrderContext(options: { workOrderId?: string | nul
 }
 
 async function loadGlobalOperationsContext() {
-  const [totalWorkOrders, openWorkOrders, overdueWorkOrders, totalInvoices, overdueInvoices, workOrders] =
+  const overdueWhere = {
+    dueDate: { lt: new Date() },
+    status: {
+      notIn: ["COMPLETED", "CLOSED", "CANCELLED"],
+    },
+  };
+
+  const [totalWorkOrders, openWorkOrders, overdueWorkOrders, totalInvoices, overdueInvoices, overdueClientGroups, workOrders] =
     await Promise.all([
       db.workOrder.count(),
       db.workOrder.count({
@@ -541,16 +548,18 @@ async function loadGlobalOperationsContext() {
         },
       }),
       db.workOrder.count({
-        where: {
-          dueDate: { lt: new Date() },
-          status: {
-            notIn: ["COMPLETED", "CLOSED", "CANCELLED"],
-          },
-        },
+        where: overdueWhere,
       }),
       db.invoice.count(),
       db.invoice.count({
         where: { status: "OVERDUE" },
+      }),
+      db.workOrder.groupBy({
+        by: ["clientId"],
+        where: overdueWhere,
+        _count: {
+          clientId: true,
+        },
       }),
       db.workOrder.findMany({
         orderBy: [{ updatedAt: "desc" }],
@@ -587,12 +596,33 @@ async function loadGlobalOperationsContext() {
       }),
     ]);
 
+  const overdueClientIds = overdueClientGroups.map((group) => group.clientId);
+  const overdueClients = overdueClientIds.length > 0
+    ? await db.user.findMany({
+        where: {
+          id: { in: overdueClientIds },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+    : [];
+  const overdueClientNameById = new Map(overdueClients.map((client) => [client.id, client.name]));
+
   return {
     totalWorkOrders,
     openWorkOrders,
     overdueWorkOrders,
     totalInvoices,
     overdueInvoices,
+    overdueByClient: overdueClientGroups
+      .map((group) => ({
+        clientName: overdueClientNameById.get(group.clientId) ?? "Unknown client",
+        overdueWorkOrders: group._count.clientId,
+      }))
+      .filter((entry) => entry.overdueWorkOrders > 0)
+      .sort((left, right) => right.overdueWorkOrders - left.overdueWorkOrders || left.clientName.localeCompare(right.clientName)),
     workOrders: workOrders.map((workOrder) => ({
       id: workOrder.id,
       workOrderNumber: workOrder.workOrderNumber ?? null,
@@ -717,6 +747,11 @@ async function askGeminiAssistant(query: string, context: Awaited<ReturnType<typ
           `Total work orders: ${context.globalContext.totalWorkOrders}`,
           `Open work orders: ${context.globalContext.openWorkOrders}`,
           `Overdue work orders: ${context.globalContext.overdueWorkOrders}`,
+          `Overdue work orders by client: ${
+            context.globalContext.overdueByClient.length > 0
+              ? context.globalContext.overdueByClient.map((entry) => `${entry.clientName} (${entry.overdueWorkOrders})`).join("; ")
+              : "No client breakdown available"
+          }`,
           `Total invoices: ${context.globalContext.totalInvoices}`,
           `Overdue invoices: ${context.globalContext.overdueInvoices}`,
         ].join("\n")

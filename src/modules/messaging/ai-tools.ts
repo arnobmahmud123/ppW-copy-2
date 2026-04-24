@@ -89,6 +89,10 @@ type AiGlobalContext = {
   overdueWorkOrders: number;
   totalInvoices: number;
   overdueInvoices: number;
+  overdueByClient: Array<{
+    clientName: string;
+    overdueWorkOrders: number;
+  }>;
   workOrders: AiGlobalWorkOrder[];
 };
 
@@ -231,6 +235,36 @@ function formatMoney(value: number | null | undefined) {
   }
 
   return `$${value.toFixed(2)}`;
+}
+
+function buildOverdueByClientAnswer(context: ThreadAiContext) {
+  const globalContext = context.globalContext;
+  if (!globalContext) {
+    return null;
+  }
+
+  if (globalContext.overdueWorkOrders === 0) {
+    return {
+      answer: "There are currently no verified overdue work orders in the system.",
+      citations: [],
+    };
+  }
+
+  if (globalContext.overdueByClient.length === 0) {
+    return {
+      answer: `There are ${globalContext.overdueWorkOrders} overdue work orders in total, but I do not see any verified client names attached to those overdue orders in the current assistant data.`,
+      citations: [],
+    };
+  }
+
+  const clientBreakdown = globalContext.overdueByClient
+    .map((entry) => `${entry.clientName}: ${entry.overdueWorkOrders}`)
+    .join("; ");
+
+  return {
+    answer: `There are ${globalContext.overdueWorkOrders} verified overdue work orders in total. By client, the overdue count is: ${clientBreakdown}.`,
+    citations: [],
+  };
 }
 
 function buildFocusedWorkOrderAnswer(workOrder: AiFocusedWorkOrder, query: string) {
@@ -589,12 +623,26 @@ export function answerThreadAssistantQuestion(context: ThreadAiContext, query: s
   const normalizedQuery = normalizeText(query);
   const referencedWorkOrder = findReferencedWorkOrder(context, query);
   const hasWorkOrderReference = Boolean(extractWorkOrderReference(query));
+  const wantsOverdueByClient =
+    normalizedQuery.includes("overdue") &&
+    (normalizedQuery.includes("client") ||
+      normalizedQuery.includes("customer") ||
+      normalizedQuery.includes("by client") ||
+      normalizedQuery.includes("per client") ||
+      normalizedQuery.includes("each client"));
 
   if (context.focusedWorkOrder && hasWorkOrderReference) {
     return {
       answer: buildFocusedWorkOrderAnswer(context.focusedWorkOrder, query),
       citations: context.focusedWorkOrder.messageTimeline.slice(-3).map((item) => item.id),
     };
+  }
+
+  if (wantsOverdueByClient) {
+    const overdueByClientAnswer = buildOverdueByClientAnswer(context);
+    if (overdueByClientAnswer) {
+      return overdueByClientAnswer;
+    }
   }
 
   if (normalizedQuery.includes("summary") || normalizedQuery.includes("catch up")) {

@@ -4578,12 +4578,12 @@ function handleKeyDown(
                              </div>
                           </div>
                           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
-                             <div className="shrink-0 border-b border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
+                             <div className="order-3 shrink-0 border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
                                 <div className="flex items-center gap-2">
                                    <Sparkles className="h-5 w-5 text-fuchsia-600" />
                                    <h3 className="text-lg font-bold text-slate-900">Ask the helper</h3>
                                 </div>
-                                <p className="mt-2 text-sm text-slate-500">Start with the chat composer here. The answer shows next, and the extra AI tools stay docked below.</p>
+                                <p className="mt-2 text-sm text-slate-500">The helper composer now stays docked at the bottom so it matches the rest of messaging.</p>
                                 <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-4 shadow-sm">
                                    <textarea
                                      ref={assistantComposerRef}
@@ -4614,13 +4614,13 @@ function handleKeyDown(
                                    </div>
                                 </div>
                              </div>
-                             <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
+                             <div className="order-1 min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
                                 <div className="space-y-5">
                                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                       <div className="flex items-center justify-between gap-3">
                                          <div>
                                             <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
-                                            <p className="mt-2 text-sm text-slate-500">Your helper result stays directly below the composer.</p>
+                                            <p className="mt-2 text-sm text-slate-500">Your helper result stays in the main workspace while the composer remains pinned at the bottom.</p>
                                          </div>
                                          <button type="button" onClick={() => void loadAiInsights()} className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100">
                                             <Sparkles className="h-4 w-4" />
@@ -4713,7 +4713,7 @@ function handleKeyDown(
                                    </div>
                                 </div>
                              </div>
-                             <div className="shrink-0 border-t border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
+                             <div className="order-2 shrink-0 border-t border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
                                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                    <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
                                    <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions like “latest invoice file” or “who mentioned inspection photos”.</p>

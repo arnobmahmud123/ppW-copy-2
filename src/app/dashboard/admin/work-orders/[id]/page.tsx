@@ -4271,7 +4271,7 @@ export default function WorkOrderDetail() {
                 )}
 
                 {activeSubTab === "comments" && (
-                  <div className="flex flex-col gap-0">
+                  <div className="flex min-h-[38rem] flex-col gap-0">
                     {/* Header row */}
                     <div className="flex items-center justify-between mb-4">
                       <div>
@@ -4292,7 +4292,8 @@ export default function WorkOrderDetail() {
                     </div>
 
                     {/* Message list */}
-                    <div className="flex flex-col gap-3 max-h-[480px] overflow-y-auto pr-1 mb-4 rounded-[20px] border border-white/8 bg-[#16203a] p-4">
+                    <div className="min-h-0 flex-1 overflow-y-auto pr-1 rounded-[20px] border border-white/8 bg-[#16203a] p-4">
+                      <div className="flex flex-col gap-3">
                       {loadingThreadMessages ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
                           <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-white/10 border-t-[#6c86f7]" />
@@ -4388,10 +4389,11 @@ export default function WorkOrderDetail() {
                         })
                       )}
                       <div ref={messagesEndRef} />
+                      </div>
                     </div>
 
                     {/* Composer */}
-                    <div className="rounded-[20px] border border-white/10 bg-[#1a2340] overflow-hidden">
+                    <div className="mt-4 shrink-0 rounded-[20px] border border-white/10 bg-[#1a2340] overflow-hidden">
                       {messageFiles && messageFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2 border-b border-white/8 px-4 pt-4 pb-3">
                           {Array.from(messageFiles).map((file, index) => {
@@ -5242,7 +5244,7 @@ export default function WorkOrderDetail() {
       {/* Task Message Modal */}
       {showTaskMessageModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+          <div className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-gray-900">
@@ -5257,7 +5259,7 @@ export default function WorkOrderDetail() {
               </div>
             </div>
             
-            <div className="px-6 py-4 max-h-96 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
               <div className="space-y-4">
                 {taskMessages[showTaskMessageModal.taskId]?.map((message) => (
                   <div key={message.id} className="border-l-4 border-blue-500 pl-4">
@@ -5278,7 +5280,7 @@ export default function WorkOrderDetail() {
               </div>
             </div>
             
-            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="shrink-0 border-t border-gray-200 px-6 py-4">
               <div className="flex space-x-2">
                 <textarea
                   value={newTaskMessage}
@@ -5303,7 +5305,7 @@ export default function WorkOrderDetail() {
       {/* Bid Message Modal */}
       {showBidMessageModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+          <div className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-gray-900">
@@ -5318,7 +5320,7 @@ export default function WorkOrderDetail() {
               </div>
             </div>
             
-            <div className="px-6 py-4 max-h-96 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
               <div className="space-y-4">
                 {bidMessages[showBidMessageModal.bidId]?.map((message) => (
                   <div key={message.id} className="border-l-4 border-green-500 pl-4">
@@ -5339,7 +5341,7 @@ export default function WorkOrderDetail() {
               </div>
             </div>
             
-            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="shrink-0 border-t border-gray-200 px-6 py-4">
               <div className="flex space-x-2">
                 <textarea
                   value={newBidMessage}

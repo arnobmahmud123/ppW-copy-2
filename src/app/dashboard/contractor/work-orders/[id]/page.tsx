@@ -1704,7 +1704,7 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
             {/* Task Message Modal */}
             {showTaskMessageModal && (
               <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                <div className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white">
                   <div className="px-6 py-4 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">
@@ -1719,7 +1719,7 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
                     </div>
                   </div>
                   
-                  <div className="px-6 py-4 max-h-96 overflow-y-auto">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
                     <div className="space-y-4">
                       {taskMessages[showTaskMessageModal.taskId]?.map((message) => (
                         <div key={message.id} className="border-l-4 border-blue-500 pl-4">
@@ -1740,7 +1740,7 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
                     </div>
                   </div>
                   
-                  <div className="px-6 py-4 border-t border-gray-200">
+                  <div className="shrink-0 border-t border-gray-200 px-6 py-4">
                     <div className="flex space-x-2">
                       <textarea
                         value={newTaskMessage}
@@ -1765,13 +1765,13 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
         )}
 
         {activeTab === "messages" && (
-          <div className="bg-white shadow rounded-lg">
+          <div className="flex min-h-[32rem] flex-col overflow-hidden rounded-lg bg-white shadow">
             {/* Messages List */}
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">Messages</h3>
             </div>
             
-            <div className="h-96 overflow-y-auto p-6 space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
               {!messages || messages.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
                   <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -1805,7 +1805,7 @@ Due Date: ${workOrder.dueDate ? new Date(workOrder.dueDate).toLocaleDateString()
             </div>
 
             {/* Message Input */}
-            <div className="p-6 border-t border-gray-200">
+            <div className="shrink-0 border-t border-gray-200 p-6">
               <div className="flex space-x-4">
                 <textarea
                   value={newMessage}

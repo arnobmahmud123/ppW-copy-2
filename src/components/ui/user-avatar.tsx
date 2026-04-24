@@ -24,27 +24,36 @@ export function UserAvatar({
   className,
 }: UserAvatarProps) {
   const [imgError, setImgError] = React.useState(false);
-  const [isLoaded, setIsLoaded] = React.useState(false);
   const imgRef = React.useRef<HTMLImageElement>(null);
+  const normalizedAvatarUrl = React.useMemo(() => {
+    if (typeof avatarUrl !== "string") {
+      return null;
+    }
 
-  // Reset states if avatarUrl changes, and check immediately if cached failure
+    const trimmed = avatarUrl.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (/^(https?:|data:|blob:|\/)/i.test(trimmed)) {
+      return trimmed;
+    }
+
+    return `/${trimmed.replace(/^\.?\/*/, "")}`;
+  }, [avatarUrl]);
+
   React.useEffect(() => {
     setImgError(false);
-    setIsLoaded(false);
 
-    if (imgRef.current && imgRef.current.complete) {
-      if (imgRef.current.naturalWidth === 0) {
-        setImgError(true);
-      } else {
-        setIsLoaded(true);
-      }
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth === 0) {
+      setImgError(true);
     }
-  }, [avatarUrl]);
+  }, [normalizedAvatarUrl]);
 
   const safeName = name || "Unknown User";
   const initials = safeName
     .split(" ")
-    .map((n) => n[0])
+    .map((part) => part[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
@@ -54,32 +63,25 @@ export function UserAvatar({
   return (
     <div
       className={cn(
-        "relative rounded-full flex items-center justify-center font-semibold text-white overflow-hidden shrink-0",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white",
         sizeClasses[size],
-        className
+        className,
       )}
       style={{ backgroundColor: bgColor }}
       title={safeName}
     >
-      {/* Fallback initials — only shown when no avatar URL or image failed to load */}
-      {(!avatarUrl || imgError) && (
-        <span>{initials}</span>
-      )}
+      {(!normalizedAvatarUrl || imgError) && <span>{initials}</span>}
 
-      {/* Actual Avatar Image */}
-      {avatarUrl && !imgError && (
+      {normalizedAvatarUrl && !imgError ? (
         <img
           ref={imgRef}
-          src={avatarUrl}
+          src={normalizedAvatarUrl}
           alt={safeName}
           className="absolute inset-0 h-full w-full object-cover"
-          onLoad={() => setIsLoaded(true)}
-          onError={() => {
-            setImgError(true);
-            setIsLoaded(false);
-          }}
+          draggable={false}
+          onError={() => setImgError(true)}
         />
-      )}
+      ) : null}
     </div>
   );
 }
@@ -91,14 +93,14 @@ function stringToColor(str: string): string {
   }
 
   const colors = [
-    "#3B82F6", // blue
-    "#10B981", // green
-    "#F59E0B", // amber
-    "#EF4444", // red
-    "#8B5CF6", // violet
-    "#EC4899", // pink
-    "#14B8A6", // teal
-    "#F97316", // orange
+    "#3B82F6",
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#EC4899",
+    "#14B8A6",
+    "#F97316",
   ];
 
   return colors[Math.abs(hash) % colors.length];

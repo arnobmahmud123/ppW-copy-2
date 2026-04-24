@@ -218,6 +218,14 @@ function threadDisplayLabel(thread: InboxWorkspace["threads"][number]) {
   return thread.displayName ?? thread.title ?? thread.participants[0] ?? thread.workOrder?.number ?? "Thread";
 }
 
+function threadAvatarUrl(thread: InboxWorkspace["threads"][number]) {
+  if (thread.isDirectMessage) {
+    return thread.primaryParticipant?.avatarUrl ?? thread.channelImageUrl ?? null;
+  }
+
+  return thread.channelImageUrl ?? null;
+}
+
 function formatSearchDateLabel(startDate?: string | null, endDate?: string | null) {
   if (!startDate && !endDate) {
     return "Date";
@@ -573,7 +581,7 @@ export function MessageSupportCenter({
       .map((thread) => ({
         id: thread.id,
         label: threadDisplayLabel(thread),
-        avatarUrl: thread.channelImageUrl ?? null,
+        avatarUrl: threadAvatarUrl(thread),
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [safeWorkspace.threads]);
@@ -733,13 +741,12 @@ export function MessageSupportCenter({
                 }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50"
               >
-                {channel.avatarUrl ? (
-                  <img src={channel.avatarUrl} alt="" className="h-9 w-9 rounded-xl object-cover" />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                    <Inbox className="h-4 w-4" />
-                  </div>
-                )}
+                <UserAvatar
+                  name={channel.label}
+                  avatarUrl={channel.avatarUrl}
+                  size="sm"
+                  className={channel.avatarUrl ? "rounded-xl" : "rounded-xl bg-slate-100 text-slate-500"}
+                />
                 <div className="min-w-0 truncate text-sm font-medium text-slate-800">{channel.label}</div>
               </button>
             ))}
@@ -1525,7 +1532,7 @@ export function MessageSupportCenter({
                                 active ? "bg-sky-100/80 shadow-[0_10px_24px_-18px_rgba(14,165,233,0.35)]" : "hover:bg-slate-50"
                               )}
                             >
-                              <UserAvatar name={threadDisplayLabel(thread)} avatarUrl={thread.channelImageUrl ?? null} size="sm" />
+                              <UserAvatar name={threadDisplayLabel(thread)} avatarUrl={threadAvatarUrl(thread)} size="sm" />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
                                   <p className="truncate text-sm font-semibold text-slate-800">{threadDisplayLabel(thread)}</p>

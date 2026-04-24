@@ -357,6 +357,14 @@ function buildWorkOrderDetailHref(userType: string | null | undefined, workOrder
   return `/dashboard/admin/work-orders/${workOrderId}` as Route;
 }
 
+function threadAvatarUrl(thread: ThreadWorkspaceShape["thread"]) {
+  if (thread.isDirectMessage) {
+    return thread.primaryParticipant?.avatarUrl ?? thread.channelImageUrl ?? null;
+  }
+
+  return thread.channelImageUrl ?? null;
+}
+
 type ThreadWorkspaceShape = {
   thread: {
     id: string;
@@ -3053,7 +3061,7 @@ function handleKeyDown(
             <div className="flex items-center gap-4">
               <div className="relative group block shrink-0">
                 <label className="cursor-pointer block relative">
-                  <UserAvatar name={thread.thread.displayName} avatarUrl={thread.thread.channelImageUrl} size="xl" />
+                  <UserAvatar name={thread.thread.displayName} avatarUrl={threadAvatarUrl(thread.thread)} size="xl" />
                   <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity overflow-hidden">
                     <span className="text-[10px] text-white font-semibold uppercase">{updatingChannel ? '...' : 'Upload'}</span>
                   </div>
@@ -3700,10 +3708,10 @@ function handleKeyDown(
               "grid h-full min-h-0 flex-1 grid-rows-1",
               replyTo ? "grid-cols-1 xl:grid-cols-[1fr_400px]" : "grid-cols-1"
             )}>
-              <div className={cn("relative flex min-h-0 h-full flex-col", conversationMode === "ai" ? "overflow-y-auto overscroll-contain" : "overflow-hidden")}>
+              <div className="relative flex min-h-0 h-full flex-col overflow-hidden">
                  <div className={cn(
                    "min-h-0 flex-1 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] px-5 py-6",
-                   conversationMode === "ai" ? "overflow-visible" : "overflow-y-auto overscroll-contain"
+                   conversationMode === "ai" ? "overflow-hidden" : "overflow-y-auto overscroll-contain"
                  )}
                  style={
                    conversationMode === "ai"
@@ -4555,10 +4563,10 @@ function handleKeyDown(
                           </div>
                        </div>
                     ) : conversationMode === "ai" ? (
-                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-4 pb-4">
-                          <div className="rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-5 shadow-sm">
-                             <div className="flex items-start justify-between gap-4">
-                                <div>
+                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-4 overflow-hidden pb-4">
+                          <div className="shrink-0 rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-5 shadow-sm">
+                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
                                    <div className="flex items-center gap-2">
                                       <Sparkles className="h-5 w-5 text-fuchsia-600" />
                                       <h3 className="text-lg font-bold text-slate-900">Helper chat</h3>
@@ -4570,7 +4578,7 @@ function handleKeyDown(
                                 <button
                                   type="button"
                                   onClick={() => assistantComposerRef.current?.focus()}
-                                  className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-white px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50"
+                                  className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-white px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50 sm:w-auto"
                                 >
                                   <MessageCircleReply className="h-4 w-4" />
                                   Start chat
@@ -4599,13 +4607,13 @@ function handleKeyDown(
                                      rows={6}
                                      className="w-full resize-none bg-transparent px-2 py-2 text-base text-slate-900 outline-none placeholder:text-slate-400"
                                    />
-                                   <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 px-2 pt-3">
+                                   <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
                                       <p className="text-xs text-slate-400">Press Enter to send, Shift+Enter for a new line</p>
                                       <button
                                         type="button"
                                         onClick={() => void runAssistantPrompt()}
                                         disabled={runningAssistant || !assistantPrompt.trim()}
-                                        className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-4 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-4 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                                         aria-label="Send message to helper"
                                       >
                                         {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
@@ -4614,15 +4622,15 @@ function handleKeyDown(
                                    </div>
                                 </div>
                              </div>
-                             <div className="order-1 min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
+                             <div className="order-1 min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
                                 <div className="space-y-5">
                                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                      <div className="flex items-center justify-between gap-3">
-                                         <div>
+                                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                         <div className="min-w-0">
                                             <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
                                             <p className="mt-2 text-sm text-slate-500">Your helper result stays in the main workspace while the composer remains pinned at the bottom.</p>
                                          </div>
-                                         <button type="button" onClick={() => void loadAiInsights()} className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100">
+                                         <button type="button" onClick={() => void loadAiInsights()} className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100 sm:w-auto">
                                             <Sparkles className="h-4 w-4" />
                                             {loadingAi ? "Refreshing..." : "Refresh AI"}
                                          </button>
@@ -4630,9 +4638,9 @@ function handleKeyDown(
                                       <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
                                          {assistantAnswer ? (
                                            <>
-                                              <p className="text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
+                                              <p className="break-words text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
                                              {assistantAnswer.citations.length > 0 ? (
-                                               <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
+                                               <p className="mt-2 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
                                              ) : null}
                                            </>
                                          ) : (
@@ -4641,14 +4649,14 @@ function handleKeyDown(
                                       </div>
                                    </div>
                                    <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-                                      <div className="rounded-3xl border border-fuchsia-100 bg-white p-6 shadow-sm">
+                                      <div className="min-w-0 rounded-3xl border border-fuchsia-100 bg-white p-6 shadow-sm">
                                          <div className="flex items-center gap-2">
                                             <Sparkles className="h-5 w-5 text-fuchsia-600" />
                                             <h3 className="text-lg font-bold text-slate-900">AI workspace</h3>
                                          </div>
                                          <p className="mt-2 text-sm text-slate-500">Smart replies, summaries, action items, meeting notes, and natural-language help for this thread.</p>
                                          <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                                            <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
+                                            <div className="min-w-0 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
                                                <h4 className="text-sm font-bold text-slate-900">Smart replies</h4>
                                                <div className="mt-3 flex flex-wrap gap-2">
                                                   {(aiInsights?.smartReplies ?? []).length === 0 ? (
@@ -4671,7 +4679,7 @@ function handleKeyDown(
                                                   )}
                                                </div>
                                             </div>
-                                            <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
+                                            <div className="min-w-0 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
                                                <h4 className="text-sm font-bold text-slate-900">Meeting notes & action items</h4>
                                                <div className="mt-3 space-y-3">
                                                   {(aiInsights?.actionItems ?? []).length === 0 ? (
@@ -4698,7 +4706,7 @@ function handleKeyDown(
                                             </div>
                                          </div>
                                       </div>
-                                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                      <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                          <h3 className="text-base font-bold text-slate-900">Meeting notes extraction</h3>
                                          <div className="mt-3 space-y-2 text-sm text-slate-600">
                                             {(aiInsights?.meetingNotes ?? []).length === 0 ? (
@@ -4717,9 +4725,9 @@ function handleKeyDown(
                                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                    <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
                                    <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions like “latest invoice file” or “who mentioned inspection photos”.</p>
-                                   <div className="mt-4 flex gap-2">
+                                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                                       <input value={aiSearchQuery} onChange={(event) => setAiSearchQuery(event.target.value)} placeholder="Find the latest file from Emma or who asked for a follow-up..." className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-400" />
-                                      <button type="button" onClick={() => void runAiSearch()} className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100">
+                                      <button type="button" onClick={() => void runAiSearch()} className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 sm:min-w-[124px]">
                                          {runningAiSearch ? "Searching..." : "Search"}
                                       </button>
                                    </div>
@@ -4785,7 +4793,7 @@ function handleKeyDown(
                                 {timeline.filter(m => m.isPinned).map(item => (
                                    <div key={item.id} className="rounded-2xl border border-amber-100 bg-amber-50/30 p-4 shadow-sm flex flex-col gap-2">
                                       <div className="flex items-center gap-2">
-                                        <UserAvatar name={item.createdByUser?.name ?? "User"} size="sm" />
+                                        <UserAvatar name={item.createdByUser?.name ?? "User"} avatarUrl={item.createdByUser?.avatarUrl ?? null} size="sm" />
                                         <span className="text-xs font-bold text-slate-900">{item.createdByUser?.name}</span>
                                         <span className="text-[10px] text-slate-400 uppercase tracking-wider">{new Date(item.createdAt).toLocaleDateString()}</span>
                                       </div>
@@ -5362,7 +5370,7 @@ onClick={() => {
                               highlightedMessageId === reply.id ? "bg-violet-50/70 ring-2 ring-violet-200 ring-offset-2 ring-offset-transparent" : ""
                             )}
                           >
-                             <UserAvatar name={reply.createdByUser?.name ?? "User"} size="sm" />
+                             <UserAvatar name={reply.createdByUser?.name ?? "User"} avatarUrl={reply.createdByUser?.avatarUrl ?? null} size="sm" />
                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <p className="text-xs font-bold text-slate-900">{reply.createdByUser?.name}</p>
@@ -5665,7 +5673,7 @@ onKeyDown={(e) => handleKeyDown(e, "thread", threadReplyBody, setThreadReplyBody
                  <div key={item.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                     <div className="flex justify-between items-start mb-3">
                        <div className="flex items-center gap-3">
-                          <UserAvatar name={item.createdByUser?.name ?? "User"} size="sm" />
+                          <UserAvatar name={item.createdByUser?.name ?? "User"} avatarUrl={item.createdByUser?.avatarUrl ?? null} size="sm" />
                           <span className="font-bold">{item.createdByUser?.name}</span>
                        </div>
                        <span className="text-xs text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>

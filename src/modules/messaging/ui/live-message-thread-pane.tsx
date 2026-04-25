@@ -4725,9 +4725,65 @@ function handleKeyDown(
                                          </div>
                                       </div>
                                    </div>
+                                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                      <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
+                                      <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions such as latest invoice file or who mentioned inspection photos.</p>
+                                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                                         <input value={aiSearchQuery} onChange={(event) => setAiSearchQuery(event.target.value)} placeholder="Find the latest file from Emma or who asked for a follow-up..." className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-400" />
+                                         <button type="button" onClick={() => void runAiSearch()} className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 sm:min-w-[124px]">
+                                            {runningAiSearch ? "Searching..." : "Search"}
+                                         </button>
+                                      </div>
+                                      <div className="mt-4 max-h-[28rem] overflow-y-auto pr-1">
+                                         <div className="space-y-4 pb-1">
+                                            <div>
+                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Messages</p>
+                                               <div className="mt-2 space-y-2">
+                                                  {aiSearchResults.messages.length === 0 ? <p className="text-sm text-slate-500">No message matches yet.</p> : aiSearchResults.messages.map((item) => (
+                                                    <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                                                      <p className="text-sm font-semibold text-slate-900">{item.author}</p>
+                                                      <p className="mt-1 break-words text-sm text-slate-600">{item.body}</p>
+                                                    </div>
+                                                  ))}
+                                               </div>
+                                            </div>
+                                            <div>
+                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Files</p>
+                                               <div className="mt-2 space-y-2">
+                                                  {aiSearchResults.files.length === 0 ? <p className="text-sm text-slate-500">No file matches yet.</p> : aiSearchResults.files.map((item) => (
+                                                    <div key={item.id} className="break-words rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm font-medium text-slate-700">{item.fileName}</div>
+                                                  ))}
+                                               </div>
+                                            </div>
+                                            <div>
+                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Users</p>
+                                               <div className="mt-2 space-y-2">
+                                                  {aiSearchResults.users.length === 0 ? <p className="text-sm text-slate-500">No user matches yet.</p> : aiSearchResults.users.map((item) => (
+                                                    <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                                                      <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                                                      {item.roleName ? <p className="mt-1 text-xs text-slate-500">{item.roleName}</p> : null}
+                                                    </div>
+                                                  ))}
+                                               </div>
+                                            </div>
+                                            <div>
+                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Documents Folder</p>
+                                               <div className="mt-2 space-y-2">
+                                                  {aiSearchResults.documents.length === 0 ? <p className="text-sm text-slate-500">No Documents-folder matches yet.</p> : aiSearchResults.documents.map((item) => (
+                                                    <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                                                      <p className="text-sm font-semibold text-slate-900">{item.fileName}</p>
+                                                      <p className="mt-1 break-all text-xs text-slate-500">{item.filePath}</p>
+                                                      {item.excerpt ? <p className="mt-2 break-words text-sm text-slate-600">{item.excerpt}</p> : null}
+                                                    </div>
+                                                  ))}
+                                               </div>
+                                            </div>
+                                         </div>
+                                      </div>
+                                   </div>
                                 </div>
                              </div>
-                             <div className="order-2 shrink-0 border-t border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
+                              <div className="hidden">
                                 <div className="max-h-[26rem] overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:max-h-[30rem]">
                                    <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
                                    <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions like “latest invoice file” or “who mentioned inspection photos”.</p>

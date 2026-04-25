@@ -1410,7 +1410,7 @@ export function MessageSupportCenter({
                               <div className="relative shrink-0">
                                 <UserAvatar
                                   name={thread.primaryParticipant?.name ?? threadDisplayLabel(thread)}
-                                  avatarUrl={thread.primaryParticipant?.avatarUrl ?? null}
+                                  avatarUrl={threadAvatarUrl(thread)}
                                   size="sm"
                                 />
                                 {thread.primaryParticipant?.isOnline ? (

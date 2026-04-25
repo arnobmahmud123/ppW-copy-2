@@ -25,30 +25,7 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const [imgError, setImgError] = React.useState(false);
   const imgRef = React.useRef<HTMLImageElement>(null);
-  const normalizedAvatarUrl = React.useMemo(() => {
-    if (typeof avatarUrl !== "string") {
-      return null;
-    }
-
-    const trimmed = avatarUrl.trim();
-    if (!trimmed) {
-      return null;
-    }
-
-    if (/^(https?:|data:|blob:|\/)/i.test(trimmed)) {
-      return trimmed;
-    }
-
-    return `/${trimmed.replace(/^\.?\/*/, "")}`;
-  }, [avatarUrl]);
-
-  React.useEffect(() => {
-    setImgError(false);
-
-    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth === 0) {
-      setImgError(true);
-    }
-  }, [normalizedAvatarUrl]);
+  const normalizedAvatarUrl = React.useMemo(() => normalizeAvatarUrl(avatarUrl), [avatarUrl]);
 
   const safeName = name || "Unknown User";
   const initials = safeName
@@ -59,6 +36,19 @@ export function UserAvatar({
     .slice(0, 2);
 
   const bgColor = stringToColor(safeName);
+  const fallbackAvatarUrl = React.useMemo(
+    () => createFallbackAvatarDataUri(initials, safeName, bgColor),
+    [bgColor, initials, safeName],
+  );
+  const resolvedAvatarUrl = !imgError && normalizedAvatarUrl ? normalizedAvatarUrl : fallbackAvatarUrl;
+
+  React.useEffect(() => {
+    setImgError(false);
+
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth === 0) {
+      setImgError(true);
+    }
+  }, [normalizedAvatarUrl]);
 
   return (
     <div
@@ -70,20 +60,66 @@ export function UserAvatar({
       style={{ backgroundColor: bgColor }}
       title={safeName}
     >
-      {(!normalizedAvatarUrl || imgError) && <span>{initials}</span>}
-
-      {normalizedAvatarUrl && !imgError ? (
-        <img
-          ref={imgRef}
-          src={normalizedAvatarUrl}
-          alt={safeName}
-          className="absolute inset-0 h-full w-full object-cover"
-          draggable={false}
-          onError={() => setImgError(true)}
-        />
-      ) : null}
+      <img
+        ref={imgRef}
+        src={resolvedAvatarUrl}
+        alt={safeName}
+        className="absolute inset-0 h-full w-full object-cover"
+        draggable={false}
+        onError={() => {
+          if (resolvedAvatarUrl !== fallbackAvatarUrl) {
+            setImgError(true);
+          }
+        }}
+      />
     </div>
   );
+}
+
+function normalizeAvatarUrl(avatarUrl?: string | null) {
+  if (typeof avatarUrl !== "string") {
+    return null;
+  }
+
+  const trimmed = avatarUrl.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^(https?:|data:|blob:|\/)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `/${trimmed.replace(/^\.?\/*/, "")}`;
+}
+
+function createFallbackAvatarDataUri(initials: string, name: string, bgColor: string) {
+  const safeInitials = initials || "U";
+  const accentColor = stringToAccentColor(name);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="${escapeSvgText(name)}">
+      <defs>
+        <linearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${bgColor}" />
+          <stop offset="100%" stop-color="${accentColor}" />
+        </linearGradient>
+      </defs>
+      <rect width="96" height="96" rx="48" fill="url(#avatarGradient)" />
+      <circle cx="72" cy="24" r="12" fill="rgba(255,255,255,0.18)" />
+      <text x="48" y="55" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700" fill="#ffffff">${escapeSvgText(safeInitials)}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/\s+/g, " ").trim())}`;
+}
+
+function escapeSvgText(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function stringToColor(str: string): string {
@@ -104,4 +140,24 @@ function stringToColor(str: string): string {
   ];
 
   return colors[Math.abs(hash) % colors.length];
+}
+
+function stringToAccentColor(str: string): string {
+  const accents = [
+    "#60A5FA",
+    "#34D399",
+    "#FBBF24",
+    "#FB7185",
+    "#A78BFA",
+    "#F472B6",
+    "#22D3EE",
+    "#FB923C",
+  ];
+
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 6) - hash);
+  }
+
+  return accents[Math.abs(hash) % accents.length];
 }

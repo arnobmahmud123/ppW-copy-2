@@ -1,12 +1,14 @@
-import { mkdir, writeFile } from "fs/promises";
-import { randomUUID } from "crypto";
-import path from "path";
-
 import { NextResponse } from "next/server";
 import { writeAuditLog } from "@/lib/audit";
 import { getAppSession } from "@/lib/app-session";
+import { createChannelImageDataUrl, validateChannelImageFile } from "@/lib/channel-image";
 import { db } from "@/lib/db";
 import { canAccessMessageThread, getMessagingAccessContext } from "@/modules/messaging";
+
+type UploadableFile = File & {
+  size: number;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
 
 function isNamedChannelTitle(value: string | null) {
   return Boolean(value) && value !== "Operational Thread" && value !== "General Work Order Thread";
@@ -56,23 +58,22 @@ export async function POST(request: Request, contextArg: { params: Promise<{ id:
   const photo = formData.get("photo");
 
   let channelImageUrl = thread.channelImageUrl;
-  const isFile = typeof photo === "object" && photo !== null && "size" in photo && "arrayBuffer" in photo;
-  if (isFile && (photo as any).size > 0) {
-    const photoFile = photo as File;
-    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-    if (!allowedTypes.has(photoFile.type)) {
-      return NextResponse.json({ error: "Use a JPG, PNG, WEBP, or GIF image." }, { status: 400 });
+  const isFile =
+    typeof photo === "object" &&
+    photo !== null &&
+    "size" in photo &&
+    typeof photo.size === "number" &&
+    "arrayBuffer" in photo &&
+    typeof photo.arrayBuffer === "function" &&
+    photo.size > 0;
+  if (isFile) {
+    const photoFile = photo as UploadableFile;
+    const validationError = validateChannelImageFile(photoFile);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const extension = photoFile.name.includes(".") ? photoFile.name.split(".").pop() : "jpg";
-    const fileName = `${thread.id}-${randomUUID()}.${extension}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "channels");
-    const targetPath = path.join(uploadDir, fileName);
-
-    await mkdir(uploadDir, { recursive: true });
-    const buffer = Buffer.from(await photo.arrayBuffer());
-    await writeFile(targetPath, buffer);
-    channelImageUrl = `/uploads/channels/${fileName}`;
+    channelImageUrl = await createChannelImageDataUrl(photoFile);
   }
 
   const data: { title?: string; channelImageUrl?: string | null } = {};

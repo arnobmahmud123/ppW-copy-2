@@ -1,11 +1,10 @@
 "use server";
 
 import { requireAppSession } from "@/lib/app-session";
+import { createChannelImageDataUrl, validateChannelImageFile } from "@/lib/channel-image";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 
   // Create message channel (thread)
 export async function createMessageChannelAction(formData: FormData) {
@@ -26,20 +25,12 @@ export async function createMessageChannelAction(formData: FormData) {
     let channelImageUrl: string | null = null;
     if (photoFile && photoFile.size > 0) {
       try {
-        const bytes = await photoFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        const validationError = validateChannelImageFile(photoFile);
+        if (validationError) {
+          return { success: false, error: validationError };
+        }
 
-        const uploadDir = path.join(process.cwd(), "public", "uploads", "channels");
-        try {
-          await mkdir(uploadDir, { recursive: true });
-        } catch {}
-
-        const { randomUUID } = await import("crypto");
-        const extension = photoFile.name.includes(".") ? photoFile.name.split(".").pop() : "jpg";
-        const fileName = `${Date.now()}-${randomUUID()}.${extension}`;
-        const filePath = path.join(uploadDir, fileName);
-        await writeFile(filePath, buffer);
-        channelImageUrl = `/uploads/channels/${fileName}`;
+        channelImageUrl = await createChannelImageDataUrl(photoFile);
       } catch (uploadError) {
         console.error("Error uploading channel photo:", uploadError);
       }

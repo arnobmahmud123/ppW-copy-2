@@ -1799,6 +1799,7 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
   async function handleChannelPhotoUpload(file: File | null) {
     if (!file) return;
 
+    const previousChannelImageUrl = thread.thread.channelImageUrl;
     // Optimistically show the picture immediately using a local object URL
     const localPreviewUrl = URL.createObjectURL(file);
     setThread((current) => ({
@@ -1823,8 +1824,9 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
         // Revert optimistic update
         setThread((current) => ({
           ...current,
-          thread: { ...current.thread, channelImageUrl: thread.thread.channelImageUrl },
+          thread: { ...current.thread, channelImageUrl: previousChannelImageUrl },
         }));
+        URL.revokeObjectURL(localPreviewUrl);
         return;
       }
 
@@ -1833,8 +1835,9 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
         // Revert optimistic update
         setThread((current) => ({
           ...current,
-          thread: { ...current.thread, channelImageUrl: thread.thread.channelImageUrl },
+          thread: { ...current.thread, channelImageUrl: previousChannelImageUrl },
         }));
+        URL.revokeObjectURL(localPreviewUrl);
         return;
       }
 
@@ -1845,6 +1848,7 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
       }));
 
       setNotice("Channel photo updated.");
+      URL.revokeObjectURL(localPreviewUrl);
       router.refresh();
     } catch (error) {
       setNotice("File upload error.");
@@ -1852,8 +1856,9 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
       // Revert optimistic update
       setThread((current) => ({
         ...current,
-        thread: { ...current.thread, channelImageUrl: thread.thread.channelImageUrl },
+        thread: { ...current.thread, channelImageUrl: previousChannelImageUrl },
       }));
+      URL.revokeObjectURL(localPreviewUrl);
     }
   }
 
@@ -4578,7 +4583,7 @@ function handleKeyDown(
                           </div>
                        </div>
                     ) : conversationMode === "ai" ? (
-                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-4 overflow-hidden pb-4">
+                       <div className="mx-auto grid h-full min-h-0 w-full max-w-[1080px] grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden pb-4">
                           <div className="shrink-0 rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-5 shadow-sm">
                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0">
@@ -4600,8 +4605,8 @@ function handleKeyDown(
                                 </button>
                              </div>
                           </div>
-                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
-                             <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
+                          <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
+                             <div className="min-h-0 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
                                 <div className="space-y-5">
                                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -4756,7 +4761,7 @@ function handleKeyDown(
                                    </div>
                                 </div>
                              </div>
-                             <div className="shrink-0 border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
+                             <div className="border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
                                 <div className="mx-auto w-full max-w-[960px]">
                                    <div className="flex items-center gap-2">
                                       <Sparkles className="h-5 w-5 text-fuchsia-600" />

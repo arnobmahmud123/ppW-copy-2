@@ -1,14 +1,16 @@
 export const runtime = "nodejs";
 
-import { mkdir, writeFile } from "fs/promises";
-import { randomUUID } from "crypto";
-import path from "path";
-
 import { NextRequest, NextResponse } from "next/server";
 import { writeAuditLog } from "@/lib/audit";
 import { getAppSession } from "@/lib/app-session";
+import { createChannelImageDataUrl, validateChannelImageFile } from "@/lib/channel-image";
 import { db } from "@/lib/db";
 import { canAccessMessageThread, getMessagingAccessContext } from "@/modules/messaging";
+
+type UploadableFile = File & {
+  size: number;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
 
 export async function POST(
   request: NextRequest,
@@ -52,35 +54,22 @@ export async function POST(
     typeof photo === "object" &&
     photo !== null &&
     "size" in photo &&
+    typeof photo.size === "number" &&
     "arrayBuffer" in photo &&
-    (photo as any).size > 0;
+    typeof photo.arrayBuffer === "function" &&
+    photo.size > 0;
 
   if (!isFile) {
     return NextResponse.json({ error: "No valid photo file received." }, { status: 400 });
   }
 
-  const photoFile = photo as File;
-  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-  if (!allowedTypes.has(photoFile.type)) {
-    return NextResponse.json({ error: "Use a JPG, PNG, WEBP, or GIF image." }, { status: 400 });
+  const photoFile = photo as UploadableFile;
+  const validationError = validateChannelImageFile(photoFile);
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
-  const rawExt = photoFile.name.includes(".") ? photoFile.name.split(".").pop() : "jpg";
-  const safeExt = (rawExt || "jpg").replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
-  const fileName = `${thread.id}-${randomUUID()}.${safeExt}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "channels");
-  const targetPath = path.join(uploadDir, fileName);
-
-  try {
-    await mkdir(uploadDir, { recursive: true });
-    const buffer = Buffer.from(await photoFile.arrayBuffer());
-    await writeFile(targetPath, buffer);
-  } catch (err) {
-    console.error("Channel photo write error:", err);
-    return NextResponse.json({ error: "Failed to save image file." }, { status: 500 });
-  }
-
-  const channelImageUrl = `/uploads/channels/${fileName}`;
+  const channelImageUrl = await createChannelImageDataUrl(photoFile);
 
   const updated = await db.messageThread.update({
     where: { id: threadId },

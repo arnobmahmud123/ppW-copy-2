@@ -391,6 +391,31 @@ function serializeThreadWorkspacePayload(workspace: any) {
   };
 }
 
+function normalizeThreadImageValue(value: unknown) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^(https?:|data:|blob:|\/)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `/${trimmed.replace(/^\.?\/*/, "")}`;
+}
+
 function serializeMessageRecord(message: any) {
   return serializeThreadWorkspacePayload({
     thread: {
@@ -879,12 +904,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     data.title = payload.title.trim();
   }
 
-  if (payload.channelImageUrl !== undefined) {
-    data.channelImageUrl = payload.channelImageUrl;
+  const normalizedChannelImageUrl = normalizeThreadImageValue(payload.channelImageUrl);
+  if (normalizedChannelImageUrl !== undefined) {
+    data.channelImageUrl = normalizedChannelImageUrl;
   }
   
-  if (payload.avatarAssetId !== undefined) {
-    data.channelImageUrl = payload.avatarAssetId;
+  const normalizedAvatarAssetId = normalizeThreadImageValue(payload.avatarAssetId);
+  if (normalizedAvatarAssetId !== undefined) {
+    data.channelImageUrl = normalizedAvatarAssetId;
   }
   if (payload.workspaceKey !== undefined) {
     data.workspaceKey = payload.workspaceKey ? payload.workspaceKey.trim() : null;

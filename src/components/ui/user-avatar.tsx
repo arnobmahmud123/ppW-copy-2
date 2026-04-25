@@ -86,6 +86,10 @@ function normalizeAvatarUrl(avatarUrl?: string | null) {
     return null;
   }
 
+  if (isGeneratedAvatarProviderUrl(trimmed)) {
+    return null;
+  }
+
   if (/^(https?:|data:|blob:|\/)/i.test(trimmed)) {
     return trimmed;
   }
@@ -160,4 +164,14 @@ function stringToAccentColor(str: string): string {
   }
 
   return accents[Math.abs(hash) % accents.length];
+}
+
+function isGeneratedAvatarProviderUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    const host = parsed.hostname.toLowerCase();
+    return host === "via.placeholder.com" || host === "ui-avatars.com";
+  } catch {
+    return false;
+  }
 }

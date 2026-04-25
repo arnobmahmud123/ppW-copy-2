@@ -4625,9 +4625,9 @@ function handleKeyDown(
                                         {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
                                         {runningAssistant ? "Thinking..." : "Ask helper"}
                                       </button>
-                                   </div>
-                                </div>
-                             </div>
+                                    </div>
+                                 </div>
+                              </div>
                              <div className="order-1 min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
                                 <div className="space-y-5">
                                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -4783,7 +4783,7 @@ function handleKeyDown(
                                    </div>
                                 </div>
                              </div>
-                              <div className="hidden">
+                              {false && (
                                 <div className="max-h-[26rem] overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:max-h-[30rem]">
                                    <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
                                    <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions like “latest invoice file” or “who mentioned inspection photos”.</p>
@@ -4840,7 +4840,7 @@ function handleKeyDown(
                                       </div>
                                    </div>
                                 </div>
-                             </div>
+                             )}
                           </div>
                        </div>
                     ) : conversationMode === "pinned" ? (
@@ -4895,7 +4895,7 @@ function handleKeyDown(
 	                 {conversationMode !== "ai" ? (
 	                 <div
                     ref={mainComposerShellRef}
-                    className="absolute inset-x-0 bottom-0 z-20 shrink-0 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] p-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
+                    className="absolute inset-x-0 bottom-0 z-20 max-h-[calc(100%-1rem)] shrink-0 overflow-y-auto overscroll-contain border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] p-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
                     style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                   >
                     <div className="mx-auto w-full max-w-[1080px]">
@@ -5512,7 +5512,7 @@ onClick={() => {
                     <div
                       ref={threadComposerShellRef}
                       className={cn(
-                        "absolute inset-x-0 bottom-0 z-20 border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.95)_0%,rgba(251,247,255,0.98)_100%)] p-4 shadow-[0_-14px_36px_-28px_rgba(139,92,246,0.32)] backdrop-blur-sm",
+                        "absolute inset-x-0 bottom-0 z-20 max-h-[calc(100%-0.75rem)] overflow-y-auto overscroll-contain border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.95)_0%,rgba(251,247,255,0.98)_100%)] p-4 shadow-[0_-14px_36px_-28px_rgba(139,92,246,0.32)] backdrop-blur-sm",
                         dragTarget === "thread"
                           ? "bg-[linear-gradient(180deg,#fffaff_0%,#f5f8ff_100%)]"
                           : ""

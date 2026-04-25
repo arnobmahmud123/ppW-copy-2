@@ -225,10 +225,6 @@ function threadAvatarUrl(thread: InboxWorkspace["threads"][number]) {
     return primaryAvatarUrl ?? thread.channelImageUrl ?? null;
   }
 
-  if (!thread.channelImageUrl && !thread.workOrderId && (thread.participantCount ?? 0) <= 2) {
-    return primaryAvatarUrl;
-  }
-
   return thread.channelImageUrl ?? null;
 }
 

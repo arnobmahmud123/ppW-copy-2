@@ -29,7 +29,7 @@ export async function createMessageChannelAction(formData: FormData) {
         const bytes = await photoFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const uploadDir = path.join(process.cwd(), "public", "uploads");
+        const uploadDir = path.join(process.cwd(), "public", "uploads", "channels");
         try {
           await mkdir(uploadDir, { recursive: true });
         } catch {}
@@ -39,7 +39,7 @@ export async function createMessageChannelAction(formData: FormData) {
         const fileName = `${Date.now()}-${randomUUID()}.${extension}`;
         const filePath = path.join(uploadDir, fileName);
         await writeFile(filePath, buffer);
-        channelImageUrl = `/uploads/${fileName}`;
+        channelImageUrl = `/uploads/channels/${fileName}`;
       } catch (uploadError) {
         console.error("Error uploading channel photo:", uploadError);
       }

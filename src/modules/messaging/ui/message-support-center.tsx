@@ -219,8 +219,14 @@ function threadDisplayLabel(thread: InboxWorkspace["threads"][number]) {
 }
 
 function threadAvatarUrl(thread: InboxWorkspace["threads"][number]) {
+  const primaryAvatarUrl = thread.primaryParticipant?.avatarUrl ?? null;
+
   if (thread.isDirectMessage) {
-    return thread.primaryParticipant?.avatarUrl ?? thread.channelImageUrl ?? null;
+    return primaryAvatarUrl ?? thread.channelImageUrl ?? null;
+  }
+
+  if (!thread.channelImageUrl && !thread.workOrderId && (thread.participantCount ?? 0) <= 2) {
+    return primaryAvatarUrl;
   }
 
   return thread.channelImageUrl ?? null;

@@ -96,6 +96,31 @@ type MessageThreadWebhookRecord = {
   createdByUser: { id: string; name: string; avatarUrl: string | null } | null;
 };
 
+function isDirectLikeThread(thread: {
+  workOrderId?: string | null;
+  title?: string | null;
+  channelImageUrl?: string | null;
+  workspaceKey?: string | null;
+  workspaceLabel?: string | null;
+  participants?: Array<unknown>;
+}) {
+  if (thread.workOrderId) {
+    return false;
+  }
+
+  if (thread.workspaceKey === "direct-messages" || thread.workspaceLabel === "Direct Messages") {
+    return true;
+  }
+
+  if (!thread.title) {
+    return true;
+  }
+
+  // Older demo/direct threads can carry a title, so treat untagged 1:1 threads without
+  // a channel image as direct-message style conversations.
+  return (thread.participants?.length ?? 0) <= 2 && !thread.channelImageUrl;
+}
+
 function getMessageAttachmentVersionModel() {
   return (
     db as unknown as {
@@ -934,10 +959,12 @@ export async function getMessageThreadWorkspace(
       pinnedCount,
     });
 
+    const isDirectMessage = isDirectLikeThread(thread);
+
     return {
       thread,
-      displayName: thread.title || 'Direct Message',
-      isDirectMessage: !thread.workOrderId && !thread.title,
+      displayName: isDirectMessage ? (members[0]?.name ?? thread.title ?? "Direct Message") : (thread.title ?? "Thread"),
+      isDirectMessage,
       participantCount: thread.participants.length,
       primaryParticipant: members[0] ?? null,
       followedByCurrentUser: Boolean(followedRecord),
@@ -1238,7 +1265,7 @@ export async function getMessagingInboxWorkspace(
 
     // Build proper thread objects with required fields
     const threadObjects = (threads as any).map((thread: any) => {
-      const isDM = !thread.workOrderId && !thread.title;
+      const isDM = isDirectLikeThread(thread);
 
       // For DMs, the primary participant is the OTHER user (not the current user)
       // For channels/WO threads, it's just the first participant

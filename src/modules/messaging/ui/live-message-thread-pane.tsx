@@ -4538,31 +4538,31 @@ function handleKeyDown(
                           </div>
                        </div>
                     ) : conversationMode === "ai" ? (
-                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-3 overflow-hidden pb-4">
-                          <div className="shrink-0 rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-4 shadow-sm sm:p-5">
-                             <div className="flex flex-col gap-2.5">
-                                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-2.5 overflow-hidden pb-4">
+                          <div className="shrink-0 rounded-[1.75rem] border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-3 shadow-sm sm:p-3.5">
+                             <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                    <div className="min-w-0">
                                       <div className="flex items-center gap-2">
-                                         <Sparkles className="h-5 w-5 text-fuchsia-600" />
-                                         <h3 className="text-lg font-bold text-slate-900">Helper chat</h3>
+                                         <Sparkles className="h-4.5 w-4.5 text-fuchsia-600" />
+                                         <h3 className="text-base font-bold text-slate-900">Helper chat</h3>
                                       </div>
-                                      <p className="mt-1.5 text-sm leading-6 text-slate-600">
+                                      <p className="mt-1 text-[13px] leading-5 text-slate-600">
                                          Ask for pricing help, document answers, summaries, ownership, next steps, or a quick explanation in plain language.
                                       </p>
                                    </div>
                                    <button
                                      type="button"
                                      onClick={() => assistantComposerRef.current?.focus()}
-                                     className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50 sm:w-auto"
+                                     className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-white px-3 py-1 text-xs font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50 sm:w-auto"
                                    >
-                                     <MessageCircleReply className="h-4 w-4" />
+                                     <MessageCircleReply className="h-3.5 w-3.5" />
                                      Start chat
                                    </button>
                                 </div>
-                                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white/90 p-3 shadow-sm sm:p-3.5">
-                                   <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                      <div className="min-w-0 flex-1 rounded-[1.35rem] border border-slate-200 bg-white px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                                <div className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white/92 p-2.5 shadow-sm">
+                                   <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end">
+                                      <div className="min-w-0 flex-1 rounded-[1.1rem] border border-slate-200 bg-white px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
                                          <textarea
                                            ref={assistantComposerRef}
                                            value={assistantPrompt}
@@ -4574,43 +4574,43 @@ function handleKeyDown(
                                              }
                                            }}
                                            placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
-                                           rows={2}
-                                           className="max-h-[15vh] min-h-[72px] w-full resize-none overflow-y-auto bg-transparent px-1 py-1 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 sm:max-h-[16vh]"
+                                           rows={1}
+                                           className="max-h-[10vh] min-h-[44px] w-full resize-none overflow-y-auto bg-transparent px-1 py-0.5 text-[14px] text-slate-900 outline-none placeholder:text-slate-400 sm:max-h-[11vh]"
                                          />
                                       </div>
-                                      <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+                                      <div className="flex shrink-0 flex-col gap-2 sm:items-end">
                                          <button
                                            type="button"
                                            onClick={() => void runAssistantPrompt()}
                                            disabled={runningAssistant || !assistantPrompt.trim()}
-                                           className="inline-flex h-11 w-full min-w-[138px] items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-4 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                                           className="inline-flex h-9 w-full min-w-[122px] items-center justify-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-3 text-xs font-semibold text-[#2b3159] shadow-[0_8px_18px_rgba(196,156,255,0.2)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                                            aria-label="Send message to helper"
                                          >
-                                           {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
+                                           {runningAssistant ? <Sparkles className="h-3.5 w-3.5 animate-pulse" /> : <SendHorizontal className="h-3.5 w-3.5" />}
                                            {runningAssistant ? "Thinking..." : "Ask helper"}
                                          </button>
-                                         <p className="text-[11px] text-slate-400 sm:text-right">Press Enter to send, Shift+Enter for a new line</p>
+                                         <p className="text-[10px] leading-4 text-slate-400 sm:text-right">Press Enter to send, Shift+Enter for a new line</p>
                                       </div>
                                    </div>
                                 </div>
                              </div>
                           </div>
-                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="min-w-0">
-                                   <h3 className="text-lg font-bold text-slate-900">Latest answer</h3>
-                                   <p className="mt-2 text-sm leading-6 text-slate-500">The latest helper response stays in a larger reading area so you can see more text before scrolling.</p>
+                                   <h3 className="text-xl font-bold text-slate-900">Latest answer</h3>
+                                   <p className="mt-2 text-sm leading-7 text-slate-500">The latest helper response now gets the larger reading area, with more space and its own scroll so you can comfortably read the full answer.</p>
                                 </div>
                              </div>
                              <div
                                ref={assistantWorkspaceScrollRef}
-                               className="mt-4 min-h-[24rem] flex-1 overflow-x-hidden overflow-y-auto rounded-[1.65rem] border border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5 sm:min-h-[28rem] sm:p-6"
+                               className="mt-5 min-h-[30rem] flex-1 overflow-x-hidden overflow-y-auto rounded-[1.8rem] border border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-6 sm:min-h-[36rem] sm:p-8"
                              >
                                 {assistantError ? (
-                                  <p className="whitespace-pre-wrap break-words text-base leading-8 text-rose-600">{assistantError}</p>
+                                  <p className="whitespace-pre-wrap break-words text-[17px] leading-9 text-rose-600">{assistantError}</p>
                                 ) : assistantAnswer ? (
-                                  <div className="space-y-4">
-                                     <p className="whitespace-pre-wrap break-words text-base leading-8 text-slate-700 sm:text-[1.02rem]">{assistantAnswer.answer}</p>
+                                  <div className="space-y-5">
+                                     <p className="whitespace-pre-wrap break-words text-[17px] leading-9 text-slate-700 sm:text-[1.06rem]">{assistantAnswer.answer}</p>
                                     {assistantAnswer.citations.length > 0 ? (
                                       <p className="break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
                                     ) : null}

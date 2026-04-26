@@ -3682,7 +3682,7 @@ function handleKeyDown(
               <div className="relative flex min-h-0 h-full flex-col overflow-hidden">
                  <div className={cn(
                    "min-h-0 flex-1 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] px-5 py-6",
-                   conversationMode === "ai" ? "overflow-hidden" : "overflow-y-auto overscroll-contain"
+                   conversationMode === "ai" ? "overflow-hidden overscroll-none" : "overflow-y-auto overscroll-contain"
                  )}
                  style={
                    conversationMode === "ai"
@@ -4538,7 +4538,7 @@ function handleKeyDown(
                           </div>
                        </div>
                     ) : conversationMode === "ai" ? (
-                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-2.5 overflow-hidden pb-4">
+                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-2.5 overflow-hidden">
                           <div className="shrink-0 rounded-[1.75rem] border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-3 shadow-sm sm:p-3.5">
                              <div className="flex flex-col gap-2">
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -4604,7 +4604,7 @@ function handleKeyDown(
                              </div>
                              <div
                                ref={assistantWorkspaceScrollRef}
-                               className="mt-5 min-h-[30rem] flex-1 overflow-x-hidden overflow-y-auto rounded-[1.8rem] border border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-6 sm:min-h-[36rem] sm:p-8"
+                               className="mt-5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain rounded-[1.8rem] border border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-6 sm:p-8"
                              >
                                 {assistantError ? (
                                   <p className="whitespace-pre-wrap break-words text-[17px] leading-9 text-rose-600">{assistantError}</p>

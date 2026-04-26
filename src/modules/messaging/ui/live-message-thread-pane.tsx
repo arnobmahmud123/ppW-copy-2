@@ -856,6 +856,7 @@ export function LiveMessageThreadPane({
   });
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [assistantAnswer, setAssistantAnswer] = useState<ThreadAssistantAnswer | null>(null);
+  const [assistantError, setAssistantError] = useState<string | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const [runningAiSearch, setRunningAiSearch] = useState(false);
   const [runningAssistant, setRunningAssistant] = useState(false);
@@ -2333,6 +2334,7 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
       return;
     }
 
+    setAssistantError(null);
     setRunningAssistant(true);
     try {
       const response = await fetch(`/api/messages/thread/${thread.thread.id}/ai`, {
@@ -2342,7 +2344,9 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setNotice(payload.error ?? "Unable to get assistant help.");
+        const message = payload.error ?? "Unable to get assistant help.";
+        setAssistantError(message);
+        setNotice(message);
         return;
       }
       setAssistantAnswer({
@@ -2355,6 +2359,10 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
           : [],
       });
       setAssistantPrompt("");
+    } catch {
+      const message = "Unable to get assistant help right now.";
+      setAssistantError(message);
+      setNotice(message);
     } finally {
       setRunningAssistant(false);
     }
@@ -4643,7 +4651,9 @@ function handleKeyDown(
                                          </button>
                                       </div>
                                       <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
-                                         {assistantAnswer ? (
+                                         {assistantError ? (
+                                           <p className="break-words text-sm leading-relaxed text-rose-600">{assistantError}</p>
+                                         ) : assistantAnswer ? (
                                            <>
                                               <p className="break-words text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
                                              {assistantAnswer.citations.length > 0 ? (
@@ -4791,6 +4801,20 @@ function handleKeyDown(
                                       <h3 className="text-lg font-bold text-slate-900">Ask the helper</h3>
                                    </div>
                                    <p className="mt-2 text-sm text-slate-500">The helper composer stays docked below the cards, so the workspace above always remains scrollable.</p>
+                                   {runningAssistant || assistantError || assistantAnswer ? (
+                                     <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-white/95 p-4 shadow-sm">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-fuchsia-500">Latest helper result</p>
+                                        <div className="mt-2 max-h-40 overflow-y-auto pr-1">
+                                           {runningAssistant ? (
+                                             <p className="text-sm text-slate-500">Working on your answer...</p>
+                                           ) : assistantError ? (
+                                             <p className="break-words text-sm leading-relaxed text-rose-600">{assistantError}</p>
+                                           ) : assistantAnswer ? (
+                                             <p className="break-words text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
+                                           ) : null}
+                                        </div>
+                                     </div>
+                                   ) : null}
                                    <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-4 shadow-sm">
                                       <textarea
                                         ref={assistantComposerRef}

@@ -314,20 +314,6 @@ type AiActionItem = {
   sourceMessageId: string;
 };
 
-type ThreadAiInsights = {
-  summary: string[];
-  smartReplies: string[];
-  actionItems: AiActionItem[];
-  meetingNotes: string[];
-};
-
-type ThreadAiSearchResults = {
-  messages: Array<{ id: string; body: string; score: number; author: string; createdAt: string }>;
-  files: Array<{ id: string; fileName: string; score: number }>;
-  users: Array<{ id: string; name: string; roleName: string | null; score: number }>;
-  documents: Array<{ id: string; fileName: string; filePath: string; excerpt: string; score: number }>;
-};
-
 type ThreadAssistantAnswer = {
   answer: string;
   citations: string[];
@@ -846,19 +832,9 @@ export function LiveMessageThreadPane({
   const [messageExpiryHours, setMessageExpiryHours] = useState("0");
   const [translatedMessages, setTranslatedMessages] = useState<Record<string, { language: string; body: string }>>({});
   const [messageReactions, setMessageReactions] = useState<MessageReactionMap>({});
-  const [aiInsights, setAiInsights] = useState<ThreadAiInsights | null>(null);
-  const [aiSearchQuery, setAiSearchQuery] = useState("");
-  const [aiSearchResults, setAiSearchResults] = useState<ThreadAiSearchResults>({
-    messages: [],
-    files: [],
-    users: [],
-    documents: [],
-  });
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [assistantAnswer, setAssistantAnswer] = useState<ThreadAssistantAnswer | null>(null);
   const [assistantError, setAssistantError] = useState<string | null>(null);
-  const [loadingAi, setLoadingAi] = useState(false);
-  const [runningAiSearch, setRunningAiSearch] = useState(false);
   const [runningAssistant, setRunningAssistant] = useState(false);
   const [channelSearchOpen, setChannelSearchOpen] = useState(false);
   const [channelSearchQuery, setChannelSearchQuery] = useState("");
@@ -2251,29 +2227,6 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
     }
   }
 
-  async function loadAiInsights() {
-    setLoadingAi(true);
-    try {
-      const response = await fetch(`/api/messages/thread/${thread.thread.id}/ai`, {
-        cache: "no-store",
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setNotice(payload.error ?? "Unable to load AI insights.");
-        return;
-      }
-      setAiInsights(payload as ThreadAiInsights);
-    } finally {
-      setLoadingAi(false);
-    }
-  }
-
-  useEffect(() => {
-    if (conversationMode === "ai" || conversationMode === "catchup") {
-      void loadAiInsights();
-    }
-  }, [conversationMode, thread.thread.id]);
-
   useEffect(() => {
     if (conversationMode !== "ai") {
       return;
@@ -2296,36 +2249,6 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
 
     return () => window.cancelAnimationFrame(frame);
   }, [assistantAnswer, assistantError, conversationMode]);
-
-  async function runAiSearch() {
-    const query = aiSearchQuery.trim();
-    if (!query) {
-      setNotice("Enter a natural language search query.");
-      return;
-    }
-
-    setRunningAiSearch(true);
-    try {
-      const response = await fetch(`/api/messages/thread/${thread.thread.id}/ai`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mode: "search", query }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setNotice(payload.error ?? "Unable to run AI search.");
-        return;
-      }
-      setAiSearchResults({
-        messages: Array.isArray(payload.messages) ? payload.messages : [],
-        files: Array.isArray(payload.files) ? payload.files : [],
-        users: Array.isArray(payload.users) ? payload.users : [],
-        documents: Array.isArray(payload.documents) ? payload.documents : [],
-      });
-    } finally {
-      setRunningAiSearch(false);
-    }
-  }
 
   async function runAssistantPrompt() {
     const query = assistantPrompt.trim();
@@ -4617,286 +4540,87 @@ function handleKeyDown(
                     ) : conversationMode === "ai" ? (
                        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-4 overflow-hidden pb-4">
                           <div className="shrink-0 rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-5 shadow-sm">
-                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="min-w-0">
-                                   <div className="flex items-center gap-2">
-                                      <Sparkles className="h-5 w-5 text-fuchsia-600" />
-                                      <h3 className="text-lg font-bold text-slate-900">Helper chat</h3>
+                             <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                   <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                         <Sparkles className="h-5 w-5 text-fuchsia-600" />
+                                         <h3 className="text-lg font-bold text-slate-900">Helper chat</h3>
+                                      </div>
+                                      <p className="mt-2 text-sm text-slate-600">
+                                         Ask for pricing help, document answers, summaries, ownership, next steps, or a quick explanation in plain language.
+                                      </p>
                                    </div>
-                                   <p className="mt-2 text-sm text-slate-600">
-                                      Ask for pricing help, document answers, summaries, ownership, next steps, or a quick explanation in plain language.
-                                   </p>
+                                   <button
+                                     type="button"
+                                     onClick={() => assistantComposerRef.current?.focus()}
+                                     className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-white px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50 sm:w-auto"
+                                   >
+                                     <MessageCircleReply className="h-4 w-4" />
+                                     Start chat
+                                   </button>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => assistantComposerRef.current?.focus()}
-                                  className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-white px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50 sm:w-auto"
-                                >
-                                  <MessageCircleReply className="h-4 w-4" />
-                                  Start chat
-                                </button>
+                                <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white/85 p-4 shadow-sm sm:p-5">
+                                   <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                                      <div className="min-w-0 flex-1 rounded-[1.5rem] border border-slate-200 bg-white px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                                         <textarea
+                                           ref={assistantComposerRef}
+                                           value={assistantPrompt}
+                                           onChange={(event) => setAssistantPrompt(event.target.value)}
+                                           onKeyDown={(event) => {
+                                             if (event.key === "Enter" && !event.shiftKey) {
+                                               event.preventDefault();
+                                               void runAssistantPrompt();
+                                             }
+                                           }}
+                                           placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
+                                           rows={3}
+                                           className="max-h-[20vh] min-h-[92px] w-full resize-none overflow-y-auto bg-transparent px-1 py-1 text-base text-slate-900 outline-none placeholder:text-slate-400"
+                                         />
+                                      </div>
+                                      <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+                                         <button
+                                           type="button"
+                                           onClick={() => void runAssistantPrompt()}
+                                           disabled={runningAssistant || !assistantPrompt.trim()}
+                                           className="inline-flex h-12 w-full min-w-[148px] items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-5 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                                           aria-label="Send message to helper"
+                                         >
+                                           {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
+                                           {runningAssistant ? "Thinking..." : "Ask helper"}
+                                         </button>
+                                         <p className="text-xs text-slate-400 sm:text-right">Press Enter to send, Shift+Enter for a new line</p>
+                                      </div>
+                                   </div>
+                                </div>
                              </div>
                           </div>
-                          <div className="shrink-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="min-w-0">
                                    <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
-                                   <p className="mt-2 text-sm text-slate-500">Your latest helper result stays visible here instead of being buried behind the other AI cards.</p>
+                                   <p className="mt-2 text-sm text-slate-500">Only the latest helper response stays here, with the full answer readable in one clean space.</p>
                                 </div>
-                                <button type="button" onClick={() => void loadAiInsights()} className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100 sm:w-auto">
-                                   <Sparkles className="h-4 w-4" />
-                                   {loadingAi ? "Refreshing..." : "Refresh AI"}
-                                </button>
                              </div>
-                             <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
+                             <div
+                               ref={assistantWorkspaceScrollRef}
+                               className="mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-2xl border border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-4 sm:p-5"
+                             >
                                 {assistantError ? (
-                                  <p className="break-words text-sm leading-relaxed text-rose-600">{assistantError}</p>
+                                  <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-rose-600">{assistantError}</p>
                                 ) : assistantAnswer ? (
-                                  <>
-                                     <p className="break-words text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
+                                  <div className="space-y-4">
+                                     <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-slate-700">{assistantAnswer.answer}</p>
                                     {assistantAnswer.citations.length > 0 ? (
-                                      <p className="mt-2 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
+                                      <p className="break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
                                     ) : null}
-                                  </>
+                                  </div>
                                 ) : (
-                                  <p className="text-sm text-slate-500">{runningAssistant ? "Working on your answer..." : "Ask a question below to start the helper conversation."}</p>
+                                  <p className="text-sm text-slate-500">{runningAssistant ? "Working on your answer..." : "Ask a question above to start the helper conversation."}</p>
                                 )}
-                             </div>
-                          </div>
-                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
-                             <div ref={assistantWorkspaceScrollRef} className="min-h-0 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
-                                <div className="space-y-5">
-                                   <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-                                      <div className="min-w-0 rounded-3xl border border-fuchsia-100 bg-white p-6 shadow-sm">
-                                         <div className="flex items-center gap-2">
-                                            <Sparkles className="h-5 w-5 text-fuchsia-600" />
-                                            <h3 className="text-lg font-bold text-slate-900">AI workspace</h3>
-                                         </div>
-                                         <p className="mt-2 text-sm text-slate-500">Smart replies, summaries, action items, meeting notes, and natural-language help for this thread.</p>
-                                         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                                            <div className="min-w-0 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
-                                               <h4 className="text-sm font-bold text-slate-900">Smart replies</h4>
-                                               <div className="mt-3 flex flex-wrap gap-2">
-                                                  {(aiInsights?.smartReplies ?? []).length === 0 ? (
-                                                    <p className="text-sm text-slate-500">Open this tab to generate reply suggestions from the latest conversation.</p>
-                                                  ) : (
-                                                    (aiInsights?.smartReplies ?? []).map((reply, index) => (
-                                                      <button
-                                                        key={`${reply}-${index}`}
-                                                        type="button"
-                                                        onClick={() => {
-                                                          setComposeBody(reply);
-                                                          setConversationMode("conversation");
-                                                          window.setTimeout(() => composerRef.current?.focus(), 0);
-                                                        }}
-                                                        className="rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-left text-sm font-medium text-violet-800 transition hover:bg-violet-100"
-                                                      >
-                                                        {reply}
-                                                      </button>
-                                                    ))
-                                                  )}
-                                               </div>
-                                            </div>
-                                            <div className="min-w-0 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4">
-                                               <h4 className="text-sm font-bold text-slate-900">Meeting notes & action items</h4>
-                                               <div className="mt-3 space-y-3">
-                                                  {(aiInsights?.actionItems ?? []).length === 0 ? (
-                                                    <p className="text-sm text-slate-500">No action items extracted yet.</p>
-                                                  ) : (
-                                                    (aiInsights?.actionItems ?? []).slice(0, 5).map((item) => (
-                                                      <div key={item.id} className="rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3">
-                                                        <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                                                        <p className="mt-1 text-xs text-slate-500">Owner signal: {item.owner}</p>
-                                                      </div>
-                                                    ))
-                                                  )}
-                                               </div>
-                                            </div>
-                                         </div>
-                                         <div className="mt-5 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f9f5ff_100%)] p-4">
-                                            <h4 className="text-sm font-bold text-slate-900">Thread summary</h4>
-                                            <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-                                               {(aiInsights?.summary ?? []).length === 0 ? (
-                                                 <p>{loadingAi ? "Loading AI summary..." : "No summary generated yet."}</p>
-                                               ) : (
-                                                 (aiInsights?.summary ?? []).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)
-                                               )}
-                                            </div>
-                                         </div>
-                                      </div>
-                                      <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                         <h3 className="text-base font-bold text-slate-900">Meeting notes extraction</h3>
-                                         <div className="mt-3 space-y-2 text-sm text-slate-600">
-                                            {(aiInsights?.meetingNotes ?? []).length === 0 ? (
-                                              <p>No meeting-style notes detected yet.</p>
-                                            ) : (
-                                              (aiInsights?.meetingNotes ?? []).map((line, index) => (
-                                                <div key={`${line}-${index}`} className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffefe_0%,#fbf8ff_100%)] px-4 py-3">{line}</div>
-                                              ))
-                                            )}
-                                         </div>
-                                      </div>
-                                   </div>
-                                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                      <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
-                                      <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions such as latest invoice file or who mentioned inspection photos.</p>
-                                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                                         <input value={aiSearchQuery} onChange={(event) => setAiSearchQuery(event.target.value)} placeholder="Find the latest file from Emma or who asked for a follow-up..." className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-400" />
-                                         <button type="button" onClick={() => void runAiSearch()} className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 sm:min-w-[124px]">
-                                            {runningAiSearch ? "Searching..." : "Search"}
-                                         </button>
-                                      </div>
-                                      <div className="mt-4 max-h-[28rem] overflow-y-auto pr-1">
-                                         <div className="space-y-4 pb-1">
-                                            <div>
-                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Messages</p>
-                                               <div className="mt-2 space-y-2">
-                                                  {aiSearchResults.messages.length === 0 ? <p className="text-sm text-slate-500">No message matches yet.</p> : aiSearchResults.messages.map((item) => (
-                                                    <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                                                      <p className="text-sm font-semibold text-slate-900">{item.author}</p>
-                                                      <p className="mt-1 break-words text-sm text-slate-600">{item.body}</p>
-                                                    </div>
-                                                  ))}
-                                               </div>
-                                            </div>
-                                            <div>
-                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Files</p>
-                                               <div className="mt-2 space-y-2">
-                                                  {aiSearchResults.files.length === 0 ? <p className="text-sm text-slate-500">No file matches yet.</p> : aiSearchResults.files.map((item) => (
-                                                    <div key={item.id} className="break-words rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm font-medium text-slate-700">{item.fileName}</div>
-                                                  ))}
-                                               </div>
-                                            </div>
-                                            <div>
-                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Users</p>
-                                               <div className="mt-2 space-y-2">
-                                                  {aiSearchResults.users.length === 0 ? <p className="text-sm text-slate-500">No user matches yet.</p> : aiSearchResults.users.map((item) => (
-                                                    <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                                                      <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                                                      {item.roleName ? <p className="mt-1 text-xs text-slate-500">{item.roleName}</p> : null}
-                                                    </div>
-                                                  ))}
-                                               </div>
-                                            </div>
-                                            <div>
-                                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Documents Folder</p>
-                                               <div className="mt-2 space-y-2">
-                                                  {aiSearchResults.documents.length === 0 ? <p className="text-sm text-slate-500">No Documents-folder matches yet.</p> : aiSearchResults.documents.map((item) => (
-                                                    <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                                                      <p className="text-sm font-semibold text-slate-900">{item.fileName}</p>
-                                                      <p className="mt-1 break-all text-xs text-slate-500">{item.filePath}</p>
-                                                      {item.excerpt ? <p className="mt-2 break-words text-sm text-slate-600">{item.excerpt}</p> : null}
-                                                    </div>
-                                                  ))}
-                                               </div>
-                                            </div>
-                                         </div>
-                                      </div>
-                                   </div>
-                                </div>
-                             </div>
-                             <div className="shrink-0 border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4 sm:p-5">
-                                <div className="mx-auto w-full max-w-[960px]">
-                                   <div className="flex items-center gap-2">
-                                      <Sparkles className="h-5 w-5 text-fuchsia-600" />
-                                      <h3 className="text-lg font-bold text-slate-900">Ask the helper</h3>
-                                   </div>
-                                   <p className="mt-2 text-sm text-slate-500">The helper composer stays docked below the cards, so the workspace above always remains scrollable.</p>
-                                   <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-4 shadow-sm sm:p-5">
-                                      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                                         <div className="min-w-0 flex-1 rounded-[1.5rem] border border-slate-200 bg-white/80 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-                                            <textarea
-                                              ref={assistantComposerRef}
-                                              value={assistantPrompt}
-                                              onChange={(event) => setAssistantPrompt(event.target.value)}
-                                              onKeyDown={(event) => {
-                                                if (event.key === "Enter" && !event.shiftKey) {
-                                                  event.preventDefault();
-                                                  void runAssistantPrompt();
-                                                }
-                                              }}
-                                              placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
-                                              rows={3}
-                                              className="max-h-[18vh] min-h-[88px] w-full resize-none overflow-y-auto bg-transparent px-1 py-1 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:max-h-[22vh] sm:min-h-[96px]"
-                                            />
-                                         </div>
-                                         <div className="flex shrink-0 flex-col gap-3 sm:items-end">
-                                            <button
-                                              type="button"
-                                              onClick={() => void runAssistantPrompt()}
-                                              disabled={runningAssistant || !assistantPrompt.trim()}
-                                              className="inline-flex h-12 w-full min-w-[148px] items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-5 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                                              aria-label="Send message to helper"
-                                            >
-                                              {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
-                                              {runningAssistant ? "Thinking..." : "Ask helper"}
-                                            </button>
-                                            <p className="text-xs text-slate-400 sm:text-right">Press Enter to send, Shift+Enter for a new line</p>
-                                         </div>
-                                      </div>
-                                    </div>
-                                 </div>
-                              </div>
-                              {false && (
-                                <div className="max-h-[26rem] overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:max-h-[30rem]">
-                                   <h3 className="text-base font-bold text-slate-900">Natural language search</h3>
-                                   <p className="mt-2 text-sm text-slate-500">Search messages, files, people, and connected Documents-folder references using normal questions like “latest invoice file” or “who mentioned inspection photos”.</p>
-                                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                                      <input value={aiSearchQuery} onChange={(event) => setAiSearchQuery(event.target.value)} placeholder="Find the latest file from Emma or who asked for a follow-up..." className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-400" />
-                                      <button type="button" onClick={() => void runAiSearch()} className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 sm:min-w-[124px]">
-                                         {runningAiSearch ? "Searching..." : "Search"}
-                                      </button>
-                                   </div>
-                                   <div className="mt-4 max-h-[17.5rem] overflow-y-auto pr-1 sm:max-h-[21rem]">
-                                      <div className="space-y-4 pb-1">
-                                      <div>
-                                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Messages</p>
-                                         <div className="mt-2 space-y-2">
-                                            {aiSearchResults.messages.length === 0 ? <p className="text-sm text-slate-500">No message matches yet.</p> : aiSearchResults.messages.map((item) => (
-                                              <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                                                <p className="text-sm font-semibold text-slate-900">{item.author}</p>
-                                                <p className="mt-1 break-words text-sm text-slate-600">{item.body}</p>
-                                              </div>
-                                            ))}
-                                         </div>
-                                      </div>
-                                      <div>
-                                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Files</p>
-                                         <div className="mt-2 space-y-2">
-                                            {aiSearchResults.files.length === 0 ? <p className="text-sm text-slate-500">No file matches yet.</p> : aiSearchResults.files.map((item) => (
-                                              <div key={item.id} className="break-words rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm font-medium text-slate-700">{item.fileName}</div>
-                                            ))}
-                                         </div>
-                                      </div>
-                                      <div>
-                                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Users</p>
-                                         <div className="mt-2 space-y-2">
-                                            {aiSearchResults.users.length === 0 ? <p className="text-sm text-slate-500">No user matches yet.</p> : aiSearchResults.users.map((item) => (
-                                              <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                                                <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                                                {item.roleName ? <p className="mt-1 text-xs text-slate-500">{item.roleName}</p> : null}
-                                              </div>
-                                            ))}
-                                         </div>
-                                      </div>
-                                      <div>
-                                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Documents Folder</p>
-                                         <div className="mt-2 space-y-2">
-                                            {aiSearchResults.documents.length === 0 ? <p className="text-sm text-slate-500">No Documents-folder matches yet.</p> : aiSearchResults.documents.map((item) => (
-                                              <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                                                <p className="text-sm font-semibold text-slate-900">{item.fileName}</p>
-                                                <p className="mt-1 break-all text-xs text-slate-500">{item.filePath}</p>
-                                                {item.excerpt ? <p className="mt-2 break-words text-sm text-slate-600">{item.excerpt}</p> : null}
-                                              </div>
-                                            ))}
-                                         </div>
-                                      </div>
-                                      </div>
-                                   </div>
-                                </div>
-                             )}
                           </div>
                        </div>
+                    </div>
                     ) : conversationMode === "pinned" ? (
                        <div className="mx-auto w-full max-w-[1080px] space-y-4">
                           <div className="flex items-center justify-between mb-4">

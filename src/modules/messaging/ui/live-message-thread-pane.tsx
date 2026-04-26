@@ -2334,6 +2334,7 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
       return;
     }
 
+    assistantComposerRef.current?.blur();
     setAssistantError(null);
     setRunningAssistant(true);
     try {
@@ -4794,41 +4795,45 @@ function handleKeyDown(
                                    </div>
                                 </div>
                              </div>
-                             <div className="border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-5">
+                             <div className="border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4 sm:p-5">
                                 <div className="mx-auto w-full max-w-[960px]">
                                    <div className="flex items-center gap-2">
                                       <Sparkles className="h-5 w-5 text-fuchsia-600" />
                                       <h3 className="text-lg font-bold text-slate-900">Ask the helper</h3>
                                    </div>
                                    <p className="mt-2 text-sm text-slate-500">The helper composer stays docked below the cards, so the workspace above always remains scrollable.</p>
-                                   <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-4 shadow-sm">
-                                      <textarea
-                                        ref={assistantComposerRef}
-                                        value={assistantPrompt}
-                                        onChange={(event) => setAssistantPrompt(event.target.value)}
-                                        onKeyDown={(event) => {
-                                          if (event.key === "Enter" && !event.shiftKey) {
-                                            event.preventDefault();
-                                            void runAssistantPrompt();
-                                          }
-                                        }}
-                                        placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
-                                        rows={4}
-                                        className="max-h-[24vh] min-h-[112px] w-full resize-none overflow-y-auto bg-transparent px-2 py-2 text-base text-slate-900 outline-none placeholder:text-slate-400"
-                                      />
-                                      <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 px-2 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                                         <p className="text-xs text-slate-400">Press Enter to send, Shift+Enter for a new line</p>
-                                         <button
-                                           type="button"
-                                           onClick={() => void runAssistantPrompt()}
-                                           disabled={runningAssistant || !assistantPrompt.trim()}
-                                           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-4 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                                           aria-label="Send message to helper"
-                                         >
-                                           {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
-                                           {runningAssistant ? "Thinking..." : "Ask helper"}
-                                         </button>
-                                       </div>
+                                   <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-4 shadow-sm sm:p-5">
+                                      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                                         <div className="min-w-0 flex-1 rounded-[1.5rem] border border-slate-200 bg-white/80 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                                            <textarea
+                                              ref={assistantComposerRef}
+                                              value={assistantPrompt}
+                                              onChange={(event) => setAssistantPrompt(event.target.value)}
+                                              onKeyDown={(event) => {
+                                                if (event.key === "Enter" && !event.shiftKey) {
+                                                  event.preventDefault();
+                                                  void runAssistantPrompt();
+                                                }
+                                              }}
+                                              placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
+                                              rows={3}
+                                              className="max-h-[18vh] min-h-[88px] w-full resize-none overflow-y-auto bg-transparent px-1 py-1 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:max-h-[22vh] sm:min-h-[96px]"
+                                            />
+                                         </div>
+                                         <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+                                            <button
+                                              type="button"
+                                              onClick={() => void runAssistantPrompt()}
+                                              disabled={runningAssistant || !assistantPrompt.trim()}
+                                              className="inline-flex h-12 w-full min-w-[148px] items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-5 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                                              aria-label="Send message to helper"
+                                            >
+                                              {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
+                                              {runningAssistant ? "Thinking..." : "Ask helper"}
+                                            </button>
+                                            <p className="text-xs text-slate-400 sm:text-right">Press Enter to send, Shift+Enter for a new line</p>
+                                         </div>
+                                      </div>
                                     </div>
                                  </div>
                               </div>

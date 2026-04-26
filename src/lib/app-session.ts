@@ -10,6 +10,7 @@ export interface AppSession {
   role: string;
   phone?: string;
   company?: string;
+  address?: string;
   avatarUrl?: string | null;
   userType?: string;
   roles?: string[];
@@ -28,19 +29,20 @@ export async function getAppSession(): Promise<AppSession | null> {
   // Fetch fresh essential details from DB since session JWT is immutable after login
   const dbUser = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { avatarUrl: true }
+    select: { name: true, email: true, role: true, phone: true, company: true, address: true, avatarUrl: true }
   });
 
   return {
     id: session.user.id,
-    name: session.user.name || "",
-    email: session.user.email || "",
-    role: session.user.role || "",
-    userType: session.user.role || "",
-    phone: session.user.phone,
-    company: session.user.company,
+    name: dbUser?.name ?? (session.user.name || ""),
+    email: dbUser?.email ?? (session.user.email || ""),
+    role: dbUser?.role ?? (session.user.role || ""),
+    userType: dbUser?.role ?? (session.user.role || ""),
+    phone: dbUser?.phone ?? session.user.phone,
+    company: dbUser?.company ?? session.user.company,
+    address: dbUser?.address ?? undefined,
     avatarUrl: dbUser?.avatarUrl ?? null,
-    roles: [session.user.role || ""]
+    roles: [dbUser?.role ?? (session.user.role || "")]
   };
 }
 

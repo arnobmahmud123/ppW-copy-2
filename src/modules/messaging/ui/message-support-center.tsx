@@ -10,6 +10,7 @@ import {
   Bell,
   Bookmark,
   Bot,
+  Building2,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +26,9 @@ import {
   MessageSquareDot,
   MessageSquareWarning,
   Minus,
+  MapPin,
+  Pencil,
+  Phone,
   Plus,
   Search,
   Settings,
@@ -373,6 +377,12 @@ export function MessageSupportCenter({
   const [sidebarThreads, setSidebarThreads] = useState(workspace?.threads || []);
   const [localSearch, setLocalSearch] = useState(workspace?.search || "");
   const [topSearchOpen, setTopSearchOpen] = useState(Boolean(workspace?.search));
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  const [profileName, setProfileName] = useState(session.name);
+  const [profilePhone, setProfilePhone] = useState(session.phone ?? "");
+  const [profileCompany, setProfileCompany] = useState(session.company ?? "");
+  const [profileAddress, setProfileAddress] = useState(session.address ?? "");
+  const [savingProfile, setSavingProfile] = useState(false);
   const [channelOrder, setChannelOrder] = useState<string[]>([]);
   const [draggedChannelId, setDraggedChannelId] = useState<string | null>(null);
   const [shortcutsMounted, setShortcutsMounted] = useState(false);
@@ -407,6 +417,13 @@ export function MessageSupportCenter({
   useEffect(() => {
     setLocalSearch(workspace?.search || "");
   }, [workspace?.search]);
+
+  useEffect(() => {
+    setProfileName(session.name);
+    setProfilePhone(session.phone ?? "");
+    setProfileCompany(session.company ?? "");
+    setProfileAddress(session.address ?? "");
+  }, [session.address, session.company, session.name, session.phone]);
 
   useEffect(() => {
     if (workspace?.search) {
@@ -1079,11 +1096,165 @@ export function MessageSupportCenter({
     });
   };
 
+  const refreshProfileShell = () => {
+    router.refresh();
+  };
+
+  const saveProfileDetails = async () => {
+    setSavingProfile(true);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: profileName,
+          phone: profilePhone,
+          company: profileCompany,
+          address: profileAddress,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        alert(typeof payload.error === "string" ? payload.error : "Unable to update profile.");
+        return;
+      }
+      setProfileEditorOpen(false);
+      refreshProfileShell();
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const uploadProfileAvatar = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+    const formData = new FormData();
+    formData.set("avatar", file);
+    const response = await fetch("/api/profile/avatar", { method: "POST", body: formData });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(typeof payload.error === "string" ? payload.error : "Unable to upload profile photo.");
+      return;
+    }
+    refreshProfileShell();
+  };
+
+  const removeProfileAvatar = async () => {
+    if (!confirm("Remove profile photo?")) {
+      return;
+    }
+    await fetch("/api/profile/avatar", { method: "DELETE" });
+    refreshProfileShell();
+  };
+
   return (
     <main className={cn("fixed inset-0 z-50 flex overflow-hidden bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] lg:bg-transparent", viewportClassName)}>
       {notice ? (
         <div className="absolute left-1/2 top-6 z-[60] -translate-x-1/2 animate-in fade-in slide-in-from-top-4 rounded-full border border-sky-200 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-900 shadow-[0_10px_24px_-10px_rgba(14,165,233,0.3)]">
           {notice}
+        </div>
+      ) : null}
+
+      {profileEditorOpen ? (
+        <div className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[2rem] border border-[#e3dcff] bg-white p-6 shadow-[0_24px_70px_rgba(148,163,184,0.28)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Edit profile</h3>
+                <p className="mt-1 text-sm text-slate-500">Update your profile photo and contact details for messaging.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProfileEditorOpen(false)}
+                className="rounded-full border border-slate-200 p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                aria-label="Close profile editor"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 flex items-center gap-4">
+              <div className="relative">
+                <UserAvatar name={profileName || session.name} avatarUrl={session.avatarUrl} size="xl" />
+                <label className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] text-[#2b3159] shadow-sm">
+                  <Plus className="h-4 w-4" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      event.target.value = "";
+                      await uploadProfileAvatar(file);
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-900">{session.email}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">{session.role}</p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void removeProfileAvatar()}
+                    className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Remove photo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <label className="block">
+                <span className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  <UserCircle2 className="h-3.5 w-3.5" />
+                  Name
+                </span>
+                <input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#c9b6ff]" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  <Phone className="h-3.5 w-3.5" />
+                  Phone
+                </span>
+                <input value={profilePhone} onChange={(event) => setProfilePhone(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#c9b6ff]" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Company
+                </span>
+                <input value={profileCompany} onChange={(event) => setProfileCompany(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#c9b6ff]" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Address
+                </span>
+                <textarea value={profileAddress} onChange={(event) => setProfileAddress(event.target.value)} rows={3} className="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#c9b6ff]" />
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setProfileEditorOpen(false)}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveProfileDetails()}
+                disabled={savingProfile}
+                className="rounded-full bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-5 py-2 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingProfile ? "Saving..." : "Save profile"}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -1211,45 +1382,17 @@ export function MessageSupportCenter({
               </div>
             </div>
             <div className="flex flex-col items-center gap-1.5">
-              <div className="relative group block">
-                <label className="cursor-pointer block relative">
-                  <UserAvatar name={session.name} avatarUrl={session.avatarUrl} size="sm" />
-                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                     <Plus className="h-3 w-3 text-white" />
-                  </div>
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const formData = new FormData();
-                      formData.set("avatar", file);
-                      try {
-                        await fetch("/api/profile/avatar", { method: "POST", body: formData });
-                      } finally {
-                        e.target.value = "";
-                        window.location.reload();
-                      }
-                    }}
-                  />
-                </label>
-                {session.avatarUrl && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!confirm("Remove profile photo?")) return;
-                      await fetch("/api/profile/avatar", { method: "DELETE" });
-                      window.location.reload();
-                    }}
-                  className="absolute -top-1 -right-1 z-10 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#7280ad] text-white opacity-0 group-hover:opacity-100 transition hover:bg-[#5b6994] shadow-sm"
-                    title="Remove photo"
-                  >
-                    <X className="h-2 w-2" />
-                  </button>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => setProfileEditorOpen(true)}
+                className="group relative block"
+                title="Edit profile"
+              >
+                <UserAvatar name={session.name} avatarUrl={session.avatarUrl} size="sm" />
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Pencil className="h-3 w-3 text-white" />
+                </div>
+              </button>
               <form action={logoutAppUser}>
                 <button
                   type="submit"

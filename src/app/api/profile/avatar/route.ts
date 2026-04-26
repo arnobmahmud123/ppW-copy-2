@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAppSession } from "@/lib/app-session";
+import { createChannelImageDataUrl, validateChannelImageFile } from "@/lib/channel-image";
 import { db } from "@/lib/db";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 
 export async function POST(request: Request) {
   try {
@@ -15,29 +14,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No avatar file provided" }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const validationError = validateChannelImageFile(file);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
+    }
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "avatars");
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch {}
+    const avatarUrl = await createChannelImageDataUrl(file);
 
-    const fileName = `${session.id}-${Date.now()}-${file.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_.-]/g, "")}`;
-    const filePath = path.join(uploadDir, fileName);
-    
-    await writeFile(filePath, buffer);
-
-    const avatarUrl = `/uploads/avatars/${fileName}`;
-
-    // Update the DB
     await db.user.update({
       where: { id: session.id },
       data: { avatarUrl }
     });
 
     return NextResponse.json({ success: true, avatarUrl });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Avatar upload error:", error);
     return NextResponse.json({ error: "Failed to upload avatar" }, { status: 500 });
   }
@@ -54,7 +44,7 @@ export async function DELETE() {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Avatar remove error:", error);
     return NextResponse.json({ error: "Failed to remove avatar" }, { status: 500 });
   }

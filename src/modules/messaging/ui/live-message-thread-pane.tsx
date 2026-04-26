@@ -1034,6 +1034,8 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
   const assistantComposerRef = useRef<HTMLTextAreaElement>(null);
   const mainComposerShellRef = useRef<HTMLDivElement>(null);
   const threadComposerShellRef = useRef<HTMLDivElement>(null);
+  const assistantWorkspaceScrollRef = useRef<HTMLDivElement>(null);
+  const assistantAnswerCardRef = useRef<HTMLDivElement>(null);
   const channelSearchInputRef = useRef<HTMLInputElement>(null);
   const threadPanelScrollRef = useRef<HTMLDivElement>(null);
   const composeFileInputRef = useRef<HTMLInputElement>(null);
@@ -2281,6 +2283,19 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
     setChannelSearchQuery("");
   }, [conversationMode]);
 
+  useEffect(() => {
+    if (!assistantAnswer || conversationMode !== "ai") {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      assistantWorkspaceScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      assistantAnswerCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [assistantAnswer, conversationMode]);
+
   async function runAiSearch() {
     const query = aiSearchQuery.trim();
     if (!query) {
@@ -2330,7 +2345,15 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
         setNotice(payload.error ?? "Unable to get assistant help.");
         return;
       }
-      setAssistantAnswer(payload as ThreadAssistantAnswer);
+      setAssistantAnswer({
+        answer:
+          typeof payload.answer === "string" && payload.answer.trim()
+            ? payload.answer.trim()
+            : "I couldn't find a usable answer for that yet.",
+        citations: Array.isArray(payload.citations)
+          ? payload.citations.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+          : [],
+      });
       setAssistantPrompt("");
     } finally {
       setRunningAssistant(false);
@@ -4606,9 +4629,9 @@ function handleKeyDown(
                              </div>
                           </div>
                           <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
-                             <div className="min-h-0 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
+                             <div ref={assistantWorkspaceScrollRef} className="min-h-0 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
                                 <div className="space-y-5">
-                                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                   <div ref={assistantAnswerCardRef} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                          <div className="min-w-0">
                                             <h3 className="text-base font-bold text-slate-900">Latest answer</h3>

@@ -1036,7 +1036,6 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
   const mainComposerShellRef = useRef<HTMLDivElement>(null);
   const threadComposerShellRef = useRef<HTMLDivElement>(null);
   const assistantWorkspaceScrollRef = useRef<HTMLDivElement>(null);
-  const assistantAnswerCardRef = useRef<HTMLDivElement>(null);
   const channelSearchInputRef = useRef<HTMLInputElement>(null);
   const threadPanelScrollRef = useRef<HTMLDivElement>(null);
   const composeFileInputRef = useRef<HTMLInputElement>(null);
@@ -2285,17 +2284,18 @@ const [composeMentionIds, setComposeMentionIds] = useState<string[]>([]);
   }, [conversationMode]);
 
   useEffect(() => {
-    if (!assistantAnswer || conversationMode !== "ai") {
+    if ((!assistantAnswer && !assistantError) || conversationMode !== "ai") {
       return;
     }
 
     const frame = window.requestAnimationFrame(() => {
-      assistantWorkspaceScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-      assistantAnswerCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (assistantWorkspaceScrollRef.current) {
+        assistantWorkspaceScrollRef.current.scrollTop = 0;
+      }
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [assistantAnswer, conversationMode]);
+  }, [assistantAnswer, assistantError, conversationMode]);
 
   async function runAiSearch() {
     const query = aiSearchQuery.trim();
@@ -4639,7 +4639,7 @@ function handleKeyDown(
                           <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
                              <div ref={assistantWorkspaceScrollRef} className="min-h-0 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
                                 <div className="space-y-5">
-                                   <div ref={assistantAnswerCardRef} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                          <div className="min-w-0">
                                             <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
@@ -4801,20 +4801,6 @@ function handleKeyDown(
                                       <h3 className="text-lg font-bold text-slate-900">Ask the helper</h3>
                                    </div>
                                    <p className="mt-2 text-sm text-slate-500">The helper composer stays docked below the cards, so the workspace above always remains scrollable.</p>
-                                   {runningAssistant || assistantError || assistantAnswer ? (
-                                     <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-white/95 p-4 shadow-sm">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-fuchsia-500">Latest helper result</p>
-                                        <div className="mt-2 max-h-40 overflow-y-auto pr-1">
-                                           {runningAssistant ? (
-                                             <p className="text-sm text-slate-500">Working on your answer...</p>
-                                           ) : assistantError ? (
-                                             <p className="break-words text-sm leading-relaxed text-rose-600">{assistantError}</p>
-                                           ) : assistantAnswer ? (
-                                             <p className="break-words text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
-                                           ) : null}
-                                        </div>
-                                     </div>
-                                   ) : null}
                                    <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf7ff_100%)] p-4 shadow-sm">
                                       <textarea
                                         ref={assistantComposerRef}

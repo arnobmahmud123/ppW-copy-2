@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import type { Prisma } from "@/generated/prisma"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 
@@ -12,17 +13,8 @@ const userUpdateSchema = z.object({
   phone: z.string().optional(),
   company: z.string().optional(),
   address: z.string().optional(),
+  avatarUrl: z.string().nullable().optional(),
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
-})
-
-const userCreateSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  role: z.enum(["CLIENT", "CONTRACTOR", "COORDINATOR", "PROCESSOR", "ADMIN"]),
-  phone: z.string().optional(),
-  company: z.string().optional(),
-  address: z.string().optional(),
-  password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
 // GET - Fetch a specific user
@@ -33,14 +25,14 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const { id } = await params
+
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.id !== id)) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       )
     }
-
-    const { id } = await params
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -52,6 +44,7 @@ export async function GET(
         phone: true,
         company: true,
         address: true,
+        avatarUrl: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -82,20 +75,27 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const { id } = await params
+
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.id !== id)) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       )
     }
-
-    const { id } = await params
     const body = await request.json()
 
     const validatedData = userUpdateSchema.parse(body)
+    const isAdmin = session.user.role === "ADMIN"
 
     // Check if email is already taken by another user (only if email is being updated)
     if (validatedData.email !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Only admins can change email addresses" },
+          { status: 403 }
+        )
+      }
       const existingUser = await prisma.user.findFirst({
         where: {
           email: validatedData.email,
@@ -111,7 +111,7 @@ export async function PUT(
       }
     }
 
-    const updateData: any = {}
+    const updateData: Prisma.UserUpdateInput = {}
     
     // Only update fields that are provided
     if (validatedData.name !== undefined) {
@@ -121,6 +121,12 @@ export async function PUT(
       updateData.email = validatedData.email
     }
     if (validatedData.role !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Only admins can change user roles" },
+          { status: 403 }
+        )
+      }
       updateData.role = validatedData.role
     }
     if (validatedData.phone !== undefined) {
@@ -132,9 +138,18 @@ export async function PUT(
     if (validatedData.address !== undefined) {
       updateData.address = validatedData.address || null
     }
+    if (validatedData.avatarUrl !== undefined) {
+      updateData.avatarUrl = validatedData.avatarUrl
+    }
 
     // Only hash password if provided
     if (validatedData.password) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Only admins can change passwords here" },
+          { status: 403 }
+        )
+      }
       updateData.hashedPassword = await bcrypt.hash(validatedData.password, 12)
     }
 
@@ -149,6 +164,7 @@ export async function PUT(
         phone: true,
         company: true,
         address: true,
+        avatarUrl: true,
         createdAt: true,
         updatedAt: true,
       }

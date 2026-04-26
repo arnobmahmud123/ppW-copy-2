@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { requireAppSession } from "@/lib/app-session";
 import { db } from "@/lib/db";
+import { UserProfileEditor } from "./user-profile-editor";
 
 type UserProfilePageProps = {
   params: Promise<{
@@ -24,7 +25,7 @@ function formatDate(value: Date | null | undefined) {
 }
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
-  await requireAppSession();
+  const session = await requireAppSession();
   const { id } = await params;
 
   const user = await db.user.findUnique({
@@ -72,6 +73,9 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     { label: "Client WOs", value: user._count.workOrdersAsClient },
   ].filter((item) => item.value > 0);
 
+  const canEdit = session.id === user.id || session.role === "ADMIN";
+  const canAdminEdit = session.role === "ADMIN";
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] px-6 py-10 text-slate-900">
       <div className="mx-auto max-w-4xl">
@@ -109,6 +113,20 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 
           <div className="grid gap-6 px-8 py-8 lg:grid-cols-[1.2fr_0.8fr]">
             <section className="space-y-6">
+              <UserProfileEditor
+                user={{
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  role: user.role,
+                  phone: user.phone,
+                  company: user.company,
+                  address: user.address,
+                  avatarUrl: user.avatarUrl,
+                }}
+                canEdit={canEdit}
+                canAdminEdit={canAdminEdit}
+              />
               <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50/80 p-5">
                 <h2 className="text-base font-bold text-slate-900">Contact details</h2>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">

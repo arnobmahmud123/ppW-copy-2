@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getDemoUserAvatar, isDemoPortraitUrl } from "@/lib/demo-user-avatars";
 
 export async function GET() {
   try {
@@ -8,10 +9,6 @@ export async function GET() {
         threadType: "GENERAL"
       }
     });
-
-    const generateRandomAvatar = (name: string) => {
-      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
-    };
 
     let updatedCount = 0;
     for (const channel of channels) {
@@ -42,12 +39,44 @@ export async function GET() {
       updatedCount++;
     }
 
+    const users = await db.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+      },
+    });
+
+    let updatedUsers = 0;
+    for (const user of users) {
+      const nextAvatarUrl = getDemoUserAvatar(user);
+      const currentAvatarUrl = user.avatarUrl?.trim() ?? null;
+      const shouldUpdateUser =
+        !currentAvatarUrl ||
+        currentAvatarUrl.startsWith("data:image/svg+xml") ||
+        currentAvatarUrl.includes("ui-avatars.com") ||
+        currentAvatarUrl.includes("via.placeholder.com") ||
+        isDemoPortraitUrl(currentAvatarUrl);
+
+      if (!shouldUpdateUser) {
+        continue;
+      }
+
+      await db.user.update({
+        where: { id: user.id },
+        data: { avatarUrl: nextAvatarUrl },
+      });
+      updatedUsers++;
+    }
+
     return NextResponse.json({ 
       success: true, 
-      message: `Successfully assigned a profile photo to ${updatedCount} channels.` 
+      message: `Successfully assigned profile photos to ${updatedCount} channels and ${updatedUsers} users.` 
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Migration error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
 }

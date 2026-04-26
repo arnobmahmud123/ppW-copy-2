@@ -4615,7 +4615,7 @@ function handleKeyDown(
                           </div>
                        </div>
                     ) : conversationMode === "ai" ? (
-                       <div className="mx-auto grid h-full min-h-0 w-full max-w-[1080px] grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden pb-4">
+                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-4 overflow-hidden pb-4">
                           <div className="shrink-0 rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-5 shadow-sm">
                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0">
@@ -4637,35 +4637,35 @@ function handleKeyDown(
                                 </button>
                              </div>
                           </div>
-                          <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
+                          <div className="shrink-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="min-w-0">
+                                   <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
+                                   <p className="mt-2 text-sm text-slate-500">Your latest helper result stays visible here instead of being buried behind the other AI cards.</p>
+                                </div>
+                                <button type="button" onClick={() => void loadAiInsights()} className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100 sm:w-auto">
+                                   <Sparkles className="h-4 w-4" />
+                                   {loadingAi ? "Refreshing..." : "Refresh AI"}
+                                </button>
+                             </div>
+                             <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
+                                {assistantError ? (
+                                  <p className="break-words text-sm leading-relaxed text-rose-600">{assistantError}</p>
+                                ) : assistantAnswer ? (
+                                  <>
+                                     <p className="break-words text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
+                                    {assistantAnswer.citations.length > 0 ? (
+                                      <p className="mt-2 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
+                                    ) : null}
+                                  </>
+                                ) : (
+                                  <p className="text-sm text-slate-500">{runningAssistant ? "Working on your answer..." : "Ask a question below to start the helper conversation."}</p>
+                                )}
+                             </div>
+                          </div>
+                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-fuchsia-100 bg-white shadow-sm">
                              <div ref={assistantWorkspaceScrollRef} className="min-h-0 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5">
                                 <div className="space-y-5">
-                                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                         <div className="min-w-0">
-                                            <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
-                                            <p className="mt-2 text-sm text-slate-500">Your helper result stays in the main workspace while the composer remains pinned at the bottom.</p>
-                                         </div>
-                                         <button type="button" onClick={() => void loadAiInsights()} className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100 sm:w-auto">
-                                            <Sparkles className="h-4 w-4" />
-                                            {loadingAi ? "Refreshing..." : "Refresh AI"}
-                                         </button>
-                                      </div>
-                                      <div className="mt-4 rounded-2xl border border-fuchsia-100 bg-fuchsia-50/50 p-4">
-                                         {assistantError ? (
-                                           <p className="break-words text-sm leading-relaxed text-rose-600">{assistantError}</p>
-                                         ) : assistantAnswer ? (
-                                           <>
-                                              <p className="break-words text-sm leading-relaxed text-slate-700">{assistantAnswer.answer}</p>
-                                             {assistantAnswer.citations.length > 0 ? (
-                                               <p className="mt-2 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
-                                             ) : null}
-                                           </>
-                                         ) : (
-                                           <p className="text-sm text-slate-500">{runningAssistant ? "Working on your answer..." : "Ask a question above to start the helper conversation."}</p>
-                                         )}
-                                      </div>
-                                   </div>
                                    <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
                                       <div className="min-w-0 rounded-3xl border border-fuchsia-100 bg-white p-6 shadow-sm">
                                          <div className="flex items-center gap-2">
@@ -4795,7 +4795,7 @@ function handleKeyDown(
                                    </div>
                                 </div>
                              </div>
-                             <div className="border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4 sm:p-5">
+                             <div className="shrink-0 border-t border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#fbf7ff_100%)] p-4 sm:p-5">
                                 <div className="mx-auto w-full max-w-[960px]">
                                    <div className="flex items-center gap-2">
                                       <Sparkles className="h-5 w-5 text-fuchsia-600" />

@@ -3,13 +3,15 @@ const ALLOWED_CHANNEL_IMAGE_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
+  "image/svg+xml",
+  "image/avif",
 ]);
 
 export const MAX_CHANNEL_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export function validateChannelImageFile(file: File) {
   if (!ALLOWED_CHANNEL_IMAGE_TYPES.has(file.type)) {
-    return "Use a JPG, PNG, WEBP, or GIF image.";
+    return "Use a JPG, PNG, WEBP, GIF, SVG, or AVIF image.";
   }
 
   if (file.size > MAX_CHANNEL_IMAGE_BYTES) {

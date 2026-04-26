@@ -4538,31 +4538,31 @@ function handleKeyDown(
                           </div>
                        </div>
                     ) : conversationMode === "ai" ? (
-                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-4 overflow-hidden pb-4">
-                          <div className="shrink-0 rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-5 shadow-sm">
-                             <div className="flex flex-col gap-3">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col gap-3 overflow-hidden pb-4">
+                          <div className="shrink-0 rounded-3xl border border-fuchsia-100 bg-[linear-gradient(135deg,rgba(255,247,252,0.96)_0%,rgba(239,245,255,0.96)_100%)] p-4 shadow-sm sm:p-5">
+                             <div className="flex flex-col gap-2.5">
+                                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
                                    <div className="min-w-0">
                                       <div className="flex items-center gap-2">
                                          <Sparkles className="h-5 w-5 text-fuchsia-600" />
                                          <h3 className="text-lg font-bold text-slate-900">Helper chat</h3>
                                       </div>
-                                      <p className="mt-2 text-sm text-slate-600">
+                                      <p className="mt-1.5 text-sm leading-6 text-slate-600">
                                          Ask for pricing help, document answers, summaries, ownership, next steps, or a quick explanation in plain language.
                                       </p>
                                    </div>
                                    <button
                                      type="button"
                                      onClick={() => assistantComposerRef.current?.focus()}
-                                     className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-white px-4 py-2 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50 sm:w-auto"
+                                     className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-full border border-fuchsia-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-fuchsia-700 transition hover:bg-fuchsia-50 sm:w-auto"
                                    >
                                      <MessageCircleReply className="h-4 w-4" />
                                      Start chat
                                    </button>
                                 </div>
-                                <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white/85 p-4 shadow-sm sm:p-5">
-                                   <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                                      <div className="min-w-0 flex-1 rounded-[1.5rem] border border-slate-200 bg-white px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white/90 p-3 shadow-sm sm:p-3.5">
+                                   <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                      <div className="min-w-0 flex-1 rounded-[1.35rem] border border-slate-200 bg-white px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
                                          <textarea
                                            ref={assistantComposerRef}
                                            value={assistantPrompt}
@@ -4574,8 +4574,8 @@ function handleKeyDown(
                                              }
                                            }}
                                            placeholder="Ask Helper anything about this thread, pricing, files, or next steps..."
-                                           rows={3}
-                                           className="max-h-[20vh] min-h-[92px] w-full resize-none overflow-y-auto bg-transparent px-1 py-1 text-base text-slate-900 outline-none placeholder:text-slate-400"
+                                           rows={2}
+                                           className="max-h-[15vh] min-h-[72px] w-full resize-none overflow-y-auto bg-transparent px-1 py-1 text-[15px] text-slate-900 outline-none placeholder:text-slate-400 sm:max-h-[16vh]"
                                          />
                                       </div>
                                       <div className="flex shrink-0 flex-col gap-3 sm:items-end">
@@ -4583,34 +4583,34 @@ function handleKeyDown(
                                            type="button"
                                            onClick={() => void runAssistantPrompt()}
                                            disabled={runningAssistant || !assistantPrompt.trim()}
-                                           className="inline-flex h-12 w-full min-w-[148px] items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-5 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                                           className="inline-flex h-11 w-full min-w-[138px] items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-4 text-sm font-semibold text-[#2b3159] shadow-[0_10px_22px_rgba(196,156,255,0.22)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                                            aria-label="Send message to helper"
                                          >
                                            {runningAssistant ? <Sparkles className="h-4 w-4 animate-pulse" /> : <SendHorizontal className="h-4 w-4" />}
                                            {runningAssistant ? "Thinking..." : "Ask helper"}
                                          </button>
-                                         <p className="text-xs text-slate-400 sm:text-right">Press Enter to send, Shift+Enter for a new line</p>
+                                         <p className="text-[11px] text-slate-400 sm:text-right">Press Enter to send, Shift+Enter for a new line</p>
                                       </div>
                                    </div>
                                 </div>
                              </div>
                           </div>
-                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="min-w-0">
-                                   <h3 className="text-base font-bold text-slate-900">Latest answer</h3>
-                                   <p className="mt-2 text-sm text-slate-500">Only the latest helper response stays here, with the full answer readable in one clean space.</p>
+                                   <h3 className="text-lg font-bold text-slate-900">Latest answer</h3>
+                                   <p className="mt-2 text-sm leading-6 text-slate-500">The latest helper response stays in a larger reading area so you can see more text before scrolling.</p>
                                 </div>
                              </div>
                              <div
                                ref={assistantWorkspaceScrollRef}
-                               className="mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-2xl border border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-4 sm:p-5"
+                               className="mt-4 min-h-[24rem] flex-1 overflow-x-hidden overflow-y-auto rounded-[1.65rem] border border-fuchsia-100 bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] p-5 sm:min-h-[28rem] sm:p-6"
                              >
                                 {assistantError ? (
-                                  <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-rose-600">{assistantError}</p>
+                                  <p className="whitespace-pre-wrap break-words text-base leading-8 text-rose-600">{assistantError}</p>
                                 ) : assistantAnswer ? (
                                   <div className="space-y-4">
-                                     <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-slate-700">{assistantAnswer.answer}</p>
+                                     <p className="whitespace-pre-wrap break-words text-base leading-8 text-slate-700 sm:text-[1.02rem]">{assistantAnswer.answer}</p>
                                     {assistantAnswer.citations.length > 0 ? (
                                       <p className="break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">References: {assistantAnswer.citations.length} message match{assistantAnswer.citations.length === 1 ? "" : "es"}</p>
                                     ) : null}

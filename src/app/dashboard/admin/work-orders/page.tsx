@@ -165,6 +165,27 @@ interface StatusFilters {
   cancelled: boolean
 }
 
+interface ParsedTaskRequirement {
+  id?: string
+  type?: string
+  label?: string
+  required?: boolean
+}
+
+interface ParsedTask {
+  id?: string
+  taskType?: string
+  taskName?: string
+  customTaskName?: string
+  comments?: string
+  photoRequirements?: ParsedTaskRequirement[]
+}
+
+interface ComplianceIssue {
+  key: string
+  label: string
+}
+
 type WorkOrderColumnKey =
   | "action"
   | "ipl"
@@ -213,6 +234,20 @@ const allColumns: WorkOrderColumnKey[] = [
   "client",
   "contractor",
   "dueDate",
+]
+
+const bulkStatusOptions = [
+  "NEW",
+  "UNASSIGNED",
+  "IN_PROGRESS",
+  "ASSIGNED",
+  "READ",
+  "COMPLETED",
+  "FIELD_COMPLETE",
+  "OFFICE_APPROVED",
+  "SENT_TO_CLIENT",
+  "CLOSED",
+  "CANCELLED",
 ]
 
 export default function AdminWorkOrders() {
@@ -269,6 +304,13 @@ export default function AdminWorkOrders() {
   const [draftColumnOrder, setDraftColumnOrder] = useState<WorkOrderColumnKey[]>(defaultColumnOrder)
   const [draggedColumn, setDraggedColumn] = useState<WorkOrderColumnKey | null>(null)
   const [draggedDraftColumn, setDraggedDraftColumn] = useState<WorkOrderColumnKey | null>(null)
+  const [bulkContractorId, setBulkContractorId] = useState("")
+  const [bulkCoordinatorId, setBulkCoordinatorId] = useState("")
+  const [bulkProcessorId, setBulkProcessorId] = useState("")
+  const [bulkStatus, setBulkStatus] = useState("")
+  const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [complianceByWorkOrderId, setComplianceByWorkOrderId] = useState<Record<string, ComplianceIssue[]>>({})
+  const [complianceLoading, setComplianceLoading] = useState(false)
 
   useEffect(() => {
     fetchWorkOrders()
@@ -436,6 +478,96 @@ export default function AdminWorkOrders() {
         return "Cancelled"
       default:
         return status.replace("_", " ")
+    }
+  }
+
+  const parseTasks = (tasksRaw?: string | null): ParsedTask[] => {
+    if (!tasksRaw || !tasksRaw.trim()) return []
+    try {
+      const parsed = JSON.parse(tasksRaw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  const normalizePhotoType = (value?: string) => {
+    const normalized = String(value || "").toUpperCase()
+    return normalized.startsWith("PHOTO_") ? normalized.replace("PHOTO_", "") : normalized
+  }
+
+  const getComplianceIssues = (order: WorkOrderDetailsResponse): ComplianceIssue[] => {
+    const issues: ComplianceIssue[] = []
+    const tasks = parseTasks(order.tasks)
+    const files = Array.isArray(order.files) ? order.files : []
+    const serviceRules: Record<string, string[]> = {
+      WINTERIZATION: ["BEFORE", "DURING", "AFTER", "BID"],
+      INSPECTION: ["INSPECTION"],
+      BOARD_UP: ["BEFORE", "DURING", "AFTER"],
+      OTHER: ["BEFORE", "AFTER"],
+    }
+
+    if (!order.title?.trim() || !order.description?.trim() || !order.addressLine1?.trim()) {
+      issues.push({ key: "required-fields", label: "Required field validation failed" })
+    }
+
+    if (!order.lockCode?.trim()) {
+      issues.push({ key: "lock-change", label: "Lock change compliance missing lock code" })
+    }
+    if (!order.lockLocation?.trim()) {
+      issues.push({ key: "lockbox", label: "Lockbox code verification missing lockbox location" })
+    }
+    if (!order.keyCode?.trim()) {
+      issues.push({ key: "key-code", label: "Key code photo verification missing key code" })
+    }
+
+    const requiredTypes = new Set<string>(["BEFORE", "DURING", "AFTER"])
+    const taskRequirementTypes = tasks.flatMap((task) =>
+      Array.isArray(task.photoRequirements)
+        ? task.photoRequirements.filter((req) => req?.required !== false).map((req) => normalizePhotoType(req.type || req.label))
+        : []
+    )
+    const ruleTypes = serviceRules[order.serviceType] || []
+    for (const reqType of [...taskRequirementTypes, ...ruleTypes]) {
+      if (reqType) requiredTypes.add(reqType)
+    }
+
+    const uploadedTypes = new Set(files.map((file) => normalizePhotoType(file.category)))
+    for (const requiredType of requiredTypes) {
+      if (!uploadedTypes.has(requiredType)) {
+        issues.push({
+          key: `photo-${requiredType.toLowerCase()}`,
+          label: `Missing ${requiredType} photo requirement`,
+        })
+      }
+    }
+
+    if (tasks.some((task) => !String(task.taskName || task.customTaskName || task.comments || "").trim())) {
+      issues.push({ key: "pending-issues", label: "Pending issue detection found empty task description" })
+    }
+
+    return issues
+  }
+
+  const fetchWorkOrderDetails = async (workOrderId: string): Promise<WorkOrderDetailsResponse | null> => {
+    const response = await fetch(`/api/work-orders/${workOrderId}`)
+    if (!response.ok) return null
+    return response.json()
+  }
+
+  const runBulkUpdate = async (payload: Record<string, unknown>) => {
+    const response = await fetch("/api/work-orders/bulk", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workOrderIds: selectedWorkOrderIds,
+        ...payload,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}))
+      throw new Error(errorPayload?.error || "Bulk update failed")
     }
   }
 
@@ -1298,18 +1430,18 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
           try {
             const parsedTasks = data.tasks ? JSON.parse(String(data.tasks)) : []
             const matchingTask = Array.isArray(parsedTasks)
-              ? parsedTasks.find((task: any) => String(task?.id || "") === String(row.taskId))
+              ? parsedTasks.find((task: { id?: string }) => String(task?.id || "") === String(row.taskId))
               : null
 
             requirementIds = Array.isArray(matchingTask?.photoRequirements)
               ? matchingTask.photoRequirements
-                  .filter((requirement: any) => {
+                  .filter((requirement: { id?: string; type?: string; label?: string }) => {
                     const typeMatch = targetPhotoTypes.includes(normalizePhotoType(requirement?.type))
                     const labelMatch = targetPhotoTypes.includes(normalizePhotoType(requirement?.label))
                     const idMatch = targetPhotoTypes.some((type) => String(requirement?.id || "").toUpperCase().includes(type))
                     return typeMatch || labelMatch || idMatch
                   })
-                  .map((requirement: any) => String(requirement.id || ""))
+                  .map((requirement: { id?: string }) => String(requirement.id || ""))
                   .filter(Boolean)
               : []
           } catch (error) {
@@ -1393,7 +1525,21 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
       return getOrderColumnFilterValue(order, column).toLowerCase().includes(needle)
     })
 
-    return statusMatches && columnMatches
+    const searchNeedle = searchTerm.trim().toLowerCase()
+    let completionTaskMatch = true
+    if (searchNeedle) {
+      const tasks = parseTasks((order as WorkOrderDetailsResponse).tasks)
+      completionTaskMatch = tasks.some((task) => {
+        const taskType = String(task.taskType || "").toLowerCase()
+        if (taskType === "bid" || taskType === "inspection") return false
+        const blob = `${task.taskName || ""} ${task.customTaskName || ""} ${task.comments || ""}`.toLowerCase()
+        return blob.includes(searchNeedle)
+      })
+      const fallbackBlob = `${order.title} ${order.workOrderNumber || ""} ${order.addressLine1} ${order.city} ${order.state}`.toLowerCase()
+      completionTaskMatch = completionTaskMatch || fallbackBlob.includes(searchNeedle)
+    }
+
+    return statusMatches && columnMatches && completionTaskMatch
   })
 
   const getPropertyHistoryCount = (order: WorkOrder) => {
@@ -1751,6 +1897,135 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
     window.URL.revokeObjectURL(url)
   }
 
+  const handleBulkAssign = async () => {
+    if (selectedWorkOrderIds.length === 0) {
+      alert("Select at least one work order for bulk assign.")
+      return
+    }
+    if (!bulkContractorId && !bulkCoordinatorId && !bulkProcessorId) {
+      alert("Provide at least one assignment field.")
+      return
+    }
+
+    try {
+      setBulkActionLoading(true)
+      await runBulkUpdate({
+        assignedContractorId: bulkContractorId,
+        assignedCoordinatorId: bulkCoordinatorId,
+        assignedProcessorId: bulkProcessorId,
+      })
+      await fetchWorkOrders()
+      alert("Bulk assignment completed.")
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Bulk assignment failed.")
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handleBulkStatusUpdate = async () => {
+    if (selectedWorkOrderIds.length === 0) {
+      alert("Select at least one work order for bulk status update.")
+      return
+    }
+    if (!bulkStatus) {
+      alert("Choose a status for bulk update.")
+      return
+    }
+    try {
+      setBulkActionLoading(true)
+      await runBulkUpdate({ status: bulkStatus })
+      await fetchWorkOrders()
+      alert("Bulk status update completed.")
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Bulk status update failed.")
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handlePrintSelected = () => {
+    if (selectedWorkOrderIds.length === 0) {
+      alert("Select at least one work order to print.")
+      return
+    }
+    const printable = filteredWorkOrders.filter((order) => selectedWorkOrderIds.includes(order.id))
+    const html = `
+      <html>
+        <head><title>Work Orders Print</title></head>
+        <body style="font-family: Arial, sans-serif; padding: 24px;">
+          <h1>Selected Work Orders</h1>
+          ${printable
+            .map(
+              (order) => `
+                <div style="padding:12px; border:1px solid #ddd; margin-bottom:8px;">
+                  <div><strong>${order.workOrderNumber || order.id}</strong> - ${order.title}</div>
+                  <div>Status: ${getStatusDisplayName(order.status)}</div>
+                  <div>Due: ${order.dueDate ? new Date(order.dueDate).toLocaleDateString() : "Not set"}</div>
+                  <div>Address: ${order.addressLine1}, ${order.city}, ${order.state} ${order.postalCode}</div>
+                </div>
+              `
+            )
+            .join("")}
+        </body>
+      </html>
+    `
+    const printWindow = window.open("", "_blank")
+    if (!printWindow) return
+    printWindow.document.write(html)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
+  }
+
+  const handleComplianceScan = async () => {
+    if (selectedWorkOrderIds.length === 0) {
+      alert("Select at least one work order for compliance checklist scan.")
+      return
+    }
+
+    try {
+      setComplianceLoading(true)
+      const entries = await Promise.all(
+        selectedWorkOrderIds.map(async (id) => {
+          const details = await fetchWorkOrderDetails(id)
+          if (!details) return [id, [{ key: "load-failed", label: "Pending issue detection unavailable" }]] as const
+          return [id, getComplianceIssues(details)] as const
+        })
+      )
+      setComplianceByWorkOrderId(Object.fromEntries(entries))
+    } catch (error) {
+      console.error("Compliance scan failed:", error)
+      alert("Compliance scan failed.")
+    } finally {
+      setComplianceLoading(false)
+    }
+  }
+
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const activeOrders = filteredWorkOrders.filter((order) => !["CLOSED", "CANCELLED"].includes(order.status))
+  const overdueOrders = activeOrders.filter((order) => {
+    if (!order.dueDate) return false
+    const due = new Date(order.dueDate)
+    due.setHours(0, 0, 0, 0)
+    return due.getTime() < now.getTime()
+  })
+  const dueSoonOrders = activeOrders.filter((order) => {
+    if (!order.dueDate) return false
+    const due = new Date(order.dueDate)
+    due.setHours(0, 0, 0, 0)
+    const diffDays = Math.round((due.getTime() - now.getTime()) / 86400000)
+    return diffDays >= 0 && diffDays <= 2
+  })
+  const pendingReviewOrders = filteredWorkOrders.filter((order) =>
+    ["FIELD_COMPLETE", "COMPLETED", "OFFICE_APPROVED"].includes(order.status)
+  )
+  const unassignedAssetOrders = filteredWorkOrders.filter((order) => !order.assignedContractor?.name)
+  const escalatedOrders = [...overdueOrders, ...dueSoonOrders].filter(
+    (order, index, arr) => arr.findIndex((candidate) => candidate.id === order.id) === index
+  )
+
   const hasAppliedFilters =
     Object.values(appliedColumnFilters).some((value) => value?.trim()) ||
     Object.entries(appliedStatusFilters).some(([key, value]) => value !== defaultStatusFilters[key as keyof StatusFilters])
@@ -1817,6 +2092,111 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
               Reset Filter
             </button>
           </div>
+        </div>
+
+        <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-[#e4dcff] bg-white/70 px-3 py-2 text-sm text-[#435072]">
+            <div className="font-semibold text-[#2b3159]">Auto Overdue Alerts</div>
+            <div>{overdueOrders.length} overdue work orders</div>
+          </div>
+          <div className="rounded-xl border border-[#e4dcff] bg-white/70 px-3 py-2 text-sm text-[#435072]">
+            <div className="font-semibold text-[#2b3159]">Auto Due Reminders</div>
+            <div>{dueSoonOrders.length} due in 48 hours</div>
+          </div>
+          <div className="rounded-xl border border-[#e4dcff] bg-white/70 px-3 py-2 text-sm text-[#435072]">
+            <div className="font-semibold text-[#2b3159]">Pending Review</div>
+            <div>{pendingReviewOrders.length} work orders awaiting review</div>
+          </div>
+          <div className="rounded-xl border border-[#e4dcff] bg-white/70 px-3 py-2 text-sm text-[#435072]">
+            <div className="font-semibold text-[#2b3159]">Asset Section</div>
+            <div>{unassignedAssetOrders.length} unassigned assets</div>
+          </div>
+        </div>
+
+        <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="xl:col-span-2">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#6d78a5]">
+              Search by completion task description
+            </label>
+            <div className="flex items-center rounded-xl border border-[#e4dcff] bg-white px-2">
+              <Search className="h-4 w-4 text-[#8a94bd]" />
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Task description, comment, address..."
+                className="w-full rounded-xl px-2 py-2 text-sm text-[#2b3159] outline-none"
+              />
+            </div>
+          </div>
+          <input
+            value={bulkContractorId}
+            onChange={(e) => setBulkContractorId(e.target.value)}
+            placeholder="Bulk assign contractor ID"
+            className="rounded-xl border border-[#e4dcff] bg-white px-3 py-2 text-sm text-[#2b3159]"
+          />
+          <input
+            value={bulkCoordinatorId}
+            onChange={(e) => setBulkCoordinatorId(e.target.value)}
+            placeholder="Bulk assign coordinator ID"
+            className="rounded-xl border border-[#e4dcff] bg-white px-3 py-2 text-sm text-[#2b3159]"
+          />
+          <input
+            value={bulkProcessorId}
+            onChange={(e) => setBulkProcessorId(e.target.value)}
+            placeholder="Bulk assign processor ID"
+            className="rounded-xl border border-[#e4dcff] bg-white px-3 py-2 text-sm text-[#2b3159]"
+          />
+          <select
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value)}
+            className="rounded-xl border border-[#e4dcff] bg-white px-3 py-2 text-sm text-[#2b3159]"
+          >
+            <option value="">Bulk status update</option>
+            {bulkStatusOptions.map((statusOption) => (
+              <option key={statusOption} value={statusOption}>
+                {statusOption.replaceAll("_", " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleBulkAssign}
+            disabled={bulkActionLoading}
+            className="rounded-xl bg-[#245f9b] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+          >
+            Bulk Assign
+          </button>
+          <button
+            onClick={handleBulkStatusUpdate}
+            disabled={bulkActionLoading}
+            className="rounded-xl bg-[#245f9b] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+          >
+            Bulk Status Update
+          </button>
+          <button
+            onClick={handleExport}
+            className="rounded-xl bg-[#2f6fb7] px-3 py-2 text-xs font-semibold text-white"
+          >
+            Export Work Orders
+          </button>
+          <button
+            onClick={handlePrintSelected}
+            className="rounded-xl bg-[#2f6fb7] px-3 py-2 text-xs font-semibold text-white"
+          >
+            Print Work Orders
+          </button>
+          <button
+            onClick={handleComplianceScan}
+            disabled={complianceLoading}
+            className="rounded-xl bg-[#1f8f63] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+          >
+            Work Order Compliance Checklist
+          </button>
+          <span className="text-xs text-[#6a769f]">
+            Selected: {selectedWorkOrderIds.length} • Escalations: {escalatedOrders.length}
+          </span>
         </div>
 
         {/* Status Checkboxes */}
@@ -1894,6 +2274,41 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
             <span className="text-sm text-[#435072]">Cancelled</span>
           </label>
         </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-[#f0d4db] bg-[#fff5f8] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#a3435c]">Auto Escalation System</div>
+            <div className="mt-1 text-sm text-[#7f3045]">{escalatedOrders.length} flagged by due-date risk</div>
+          </div>
+          <div className="rounded-xl border border-[#d9e7ff] bg-[#f4f8ff] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#355ea6]">Pending Review Section</div>
+            <div className="mt-1 text-sm text-[#2f4f85]">
+              {pendingReviewOrders.slice(0, 2).map((order) => order.workOrderNumber || order.id).join(", ") || "No pending review items"}
+            </div>
+          </div>
+          <div className="rounded-xl border border-[#d7efe0] bg-[#f2fbf6] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#1d7a53]">Asset Section</div>
+            <div className="mt-1 text-sm text-[#1f6348]">
+              {unassignedAssetOrders.slice(0, 2).map((order) => order.workOrderNumber || order.id).join(", ") || "All active orders assigned"}
+            </div>
+          </div>
+        </div>
+
+        {!!Object.keys(complianceByWorkOrderId).length && (
+          <div className="mt-4 rounded-xl border border-[#e3dcff] bg-white/80 p-3">
+            <div className="mb-2 text-sm font-semibold text-[#2b3159]">Service-specific compliance rules and pending issue detection</div>
+            <div className="space-y-2 text-xs text-[#4b567e]">
+              {Object.entries(complianceByWorkOrderId).map(([workOrderId, issues]) => (
+                <div key={workOrderId}>
+                  <span className="font-semibold">{workOrderId.slice(-7)}:</span>{" "}
+                  {issues.length
+                    ? issues.map((issue) => issue.label).join(" | ")
+                    : "Compliance checks passed (Before / During / After photos, lock change compliance, lockbox verification, key code verification)."}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Data Table with Column Filters */}

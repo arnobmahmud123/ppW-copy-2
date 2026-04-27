@@ -1,6 +1,3 @@
-import fs from "fs"
-import path from "path"
-
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 
@@ -11,9 +8,8 @@ import { listPropertyStreetImageryTargets } from "@/modules/properties/streetIma
 export const runtime = "nodejs"
 export const maxDuration = 300
 
-const MAX_IMAGE_BYTES = 12 * 1024 * 1024
-const MAX_PHOTOS_PER_PROPERTY = 4
 const FETCH_TIMEOUT_MS = 20_000
+const MAX_PHOTOS_PER_PROPERTY = 4
 
 // Rotate user agents to reduce scraping detection
 const USER_AGENTS = [
@@ -32,32 +28,13 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// ───────────────────────── Image helpers (same as import-listing-photo-urls) ─
+// ───────────────────────── Image URL validation ─────────────────────────────
 
-function sniffImage(buffer: Buffer): { ext: string; mimeType: string } | null {
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return { ext: "jpg", mimeType: "image/jpeg" }
-  }
-  if (
-    buffer.length >= 8 &&
-    buffer[0] === 0x89 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x4e &&
-    buffer[3] === 0x47
-  ) {
-    return { ext: "png", mimeType: "image/png" }
-  }
-  if (
-    buffer.length >= 12 &&
-    buffer.toString("ascii", 0, 4) === "RIFF" &&
-    buffer.toString("ascii", 8, 12) === "WEBP"
-  ) {
-    return { ext: "webp", mimeType: "image/webp" }
-  }
-  return null
-}
-
-async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: string; ext: string } | null> {
+/**
+ * Verify a URL actually serves an image by doing a HEAD (or small GET) request.
+ * Returns the content-type if it looks like an image, or null otherwise.
+ */
+async function probeImageUrl(url: string): Promise<{ mimeType: string } | null> {
   try {
     const parsed = new URL(url)
     if (!["http:", "https:"].includes(parsed.protocol)) return null
@@ -68,25 +45,31 @@ async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: s
   }
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), 10_000)
   try {
+    // Try HEAD first to avoid downloading the full image
     const res = await fetch(url, {
+      method: "HEAD",
       signal: controller.signal,
       redirect: "follow",
       headers: {
         "User-Agent": randomUA(),
-        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        Accept: "image/*,*/*;q=0.8",
         Referer: "https://www.bing.com/",
       },
     })
     if (!res.ok) return null
-    const len = res.headers.get("content-length")
-    if (len && Number(len) > MAX_IMAGE_BYTES) return null
-    const buf = Buffer.from(await res.arrayBuffer())
-    if (buf.length > MAX_IMAGE_BYTES || buf.length < 5_000) return null // ignore tiny thumbnails
-    const sniffed = sniffImage(buf)
-    if (!sniffed) return null
-    return { buffer: buf, mimeType: sniffed.mimeType, ext: sniffed.ext }
+    const ct = res.headers.get("content-type")?.toLowerCase() ?? ""
+    if (ct.includes("image/")) {
+      return { mimeType: ct.split(";")[0]!.trim() }
+    }
+    // Some servers don't return proper content-type on HEAD; check extension
+    const ext = url.split("?")[0]?.split(".").pop()?.toLowerCase()
+    if (ext && ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) {
+      const guessedMime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/gif"
+      return { mimeType: guessedMime }
+    }
+    return null
   } catch {
     return null
   } finally {
@@ -254,20 +237,17 @@ async function processOneProperty(
     return { propertyKey: target.propertyKey, workOrderId: target.workOrderId, address, created: 0, skipped: false, source: "none", errors }
   }
 
-  // Download and save images
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", target.workOrderId)
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true })
-  }
-
+  // Validate and save image URLs directly (no filesystem writes — Vercel compatible)
   let created = 0
   let hasBefore = target.hasExistingBeforePhoto
 
   for (let i = 0; i < imageUrls.length && created < MAX_PHOTOS_PER_PROPERTY; i++) {
     const imgUrl = imageUrls[i]!
-    const downloaded = await downloadImage(imgUrl)
-    if (!downloaded) {
-      errors.push(`Download failed: ${imgUrl.slice(0, 100)}${imgUrl.length > 100 ? "…" : ""}`)
+
+    // Verify the URL actually serves an image
+    const probed = await probeImageUrl(imgUrl)
+    if (!probed) {
+      errors.push(`Not a valid image: ${imgUrl.slice(0, 100)}${imgUrl.length > 100 ? "…" : ""}`)
       continue
     }
 
@@ -280,18 +260,14 @@ async function processOneProperty(
       category = "PHOTO_DURING"
     }
 
-    const filename = `auto-scrape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${downloaded.ext}`
-    const filePath = path.join(uploadsDir, filename)
-    fs.writeFileSync(filePath, downloaded.buffer)
-    const fileUrl = `/uploads/${target.workOrderId}/${filename}`
-    const fileKey = `work-orders/${target.workOrderId}/${filename}`
+    const fileKey = `auto-scrape/${target.workOrderId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
     try {
       await db.fileAttachment.create({
         data: {
-          url: fileUrl,
+          url: imgUrl,
           key: fileKey,
-          mimeType: downloaded.mimeType,
+          mimeType: probed.mimeType,
           category,
           workOrderId: target.workOrderId,
         },
@@ -300,14 +276,9 @@ async function processOneProperty(
     } catch (dbErr: unknown) {
       const msg = dbErr instanceof Error ? dbErr.message : String(dbErr)
       errors.push(`DB save failed: ${msg}`)
-      try {
-        fs.unlinkSync(filePath)
-      } catch {
-        /* ignore */
-      }
     }
 
-    // Small delay between image downloads
+    // Small delay between probes
     if (i < imageUrls.length - 1) await sleep(300)
   }
 
@@ -386,7 +357,7 @@ export async function POST(request: NextRequest) {
         skipped: 0,
         imagesCreated: result.created,
         results: [result],
-        note: "Images were scraped from public web search results. You are responsible for rights to use each image.",
+        note: "Image URLs from public web search are stored directly. You are responsible for rights to use each image.",
       })
     }
 
@@ -449,7 +420,7 @@ export async function POST(request: NextRequest) {
       skipped,
       imagesCreated,
       failures: failures.slice(0, 20),
-      note: "Images were scraped from public web search results (Bing Images and Zillow). No API keys used. You are responsible for rights to use each image.",
+      note: "Image URLs from public web search (Bing Images / Zillow) are stored directly. No files are written to disk. You are responsible for rights to use each image.",
     })
   } catch (error) {
     console.error("auto-scrape-photos:", error)

@@ -1,5 +1,3 @@
-import fs from "fs"
-import path from "path"
 
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
@@ -10,7 +8,6 @@ import { listPropertyStreetImageryTargets } from "@/modules/properties/streetIma
 
 export const runtime = "nodejs"
 
-const MAX_IMAGE_BYTES = 12 * 1024 * 1024
 const MAX_URLS_PER_PROPERTY = 24
 const FETCH_TIMEOUT_MS = 45_000
 
@@ -65,43 +62,21 @@ function validateRemoteImageUrl(urlStr: string): string | null {
   return null
 }
 
-function sniffImage(buffer: Buffer): { ext: string; mimeType: string } | null {
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return { ext: "jpg", mimeType: "image/jpeg" }
-  }
-  if (
-    buffer.length >= 8 &&
-    buffer[0] === 0x89 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x4e &&
-    buffer[3] === 0x47
-  ) {
-    return { ext: "png", mimeType: "image/png" }
-  }
-  if (
-    buffer.length >= 12 &&
-    buffer.toString("ascii", 0, 4) === "RIFF" &&
-    buffer.toString("ascii", 8, 12) === "WEBP"
-  ) {
-    return { ext: "webp", mimeType: "image/webp" }
-  }
-  if (buffer.length >= 6 && buffer.toString("ascii", 0, 6) === "GIF87a") {
-    return { ext: "gif", mimeType: "image/gif" }
-  }
-  if (buffer.length >= 6 && buffer.toString("ascii", 0, 6) === "GIF89a") {
-    return { ext: "gif", mimeType: "image/gif" }
-  }
-  return null
-}
-
-async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: string; ext: string } | null> {
+/**
+ * Verify a URL actually points to an image by doing a lightweight fetch.
+ * We do a HEAD request first; if the content-type looks like an image we accept it.
+ * Falls back to extension sniffing when the server doesn't return a useful content-type.
+ * Returns the detected mimeType or null if it doesn't look like an image.
+ */
+async function probeImageUrl(url: string): Promise<{ mimeType: string } | null> {
   const bad = validateRemoteImageUrl(url)
   if (bad) return null
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), 15_000)
   try {
     const res = await fetch(url, {
+      method: "HEAD",
       signal: controller.signal,
       redirect: "follow",
       headers: {
@@ -110,13 +85,24 @@ async function downloadImage(url: string): Promise<{ buffer: Buffer; mimeType: s
       },
     })
     if (!res.ok) return null
-    const len = res.headers.get("content-length")
-    if (len && Number(len) > MAX_IMAGE_BYTES) return null
-    const buf = Buffer.from(await res.arrayBuffer())
-    if (buf.length > MAX_IMAGE_BYTES) return null
-    const sniffed = sniffImage(buf)
-    if (!sniffed) return null
-    return { buffer: buf, mimeType: sniffed.mimeType, ext: sniffed.ext }
+    const ct = res.headers.get("content-type")?.toLowerCase() ?? ""
+    if (ct.includes("image/")) {
+      return { mimeType: ct.split(";")[0]!.trim() }
+    }
+    // Fallback: guess from URL extension
+    const ext = url.split("?")[0]?.split(".").pop()?.toLowerCase()
+    if (ext && ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) {
+      const guessed =
+        ext === "jpg" || ext === "jpeg"
+          ? "image/jpeg"
+          : ext === "png"
+            ? "image/png"
+            : ext === "webp"
+              ? "image/webp"
+              : "image/gif"
+      return { mimeType: guessed }
+    }
+    return null
   } catch {
     return null
   } finally {
@@ -181,10 +167,6 @@ async function processOneItem(item: BodyItem): Promise<{
 
   let hasBefore = resolved.hasBefore
   let created = 0
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", resolved.workOrderId)
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true })
-  }
 
   for (let i = 0; i < imageUrls.length; i += 1) {
     const url = imageUrls[i]!
@@ -194,9 +176,10 @@ async function processOneItem(item: BodyItem): Promise<{
       continue
     }
 
-    const downloaded = await downloadImage(url)
-    if (!downloaded) {
-      errors.push(`Download or decode failed: ${url.slice(0, 120)}${url.length > 120 ? "…" : ""}`)
+    // Verify the URL actually serves an image (lightweight HEAD request)
+    const probed = await probeImageUrl(url)
+    if (!probed) {
+      errors.push(`Not a valid image URL: ${url.slice(0, 120)}${url.length > 120 ? "…" : ""}`)
       continue
     }
 
@@ -210,18 +193,15 @@ async function processOneItem(item: BodyItem): Promise<{
       category = "PHOTO_DURING"
     }
 
-    const filename = `listing-import-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${downloaded.ext}`
-    const filePath = path.join(uploadsDir, filename)
-    fs.writeFileSync(filePath, downloaded.buffer)
-    const fileUrl = `/uploads/${resolved.workOrderId}/${filename}`
-    const fileKey = `work-orders/${resolved.workOrderId}/${filename}`
+    // Store the external URL directly (no filesystem writes — Vercel compatible)
+    const fileKey = `listing-import/${resolved.workOrderId}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 
     try {
       await db.fileAttachment.create({
         data: {
-          url: fileUrl,
+          url: url,
           key: fileKey,
-          mimeType: downloaded.mimeType,
+          mimeType: probed.mimeType,
           category,
           workOrderId: resolved.workOrderId,
         },
@@ -230,11 +210,6 @@ async function processOneItem(item: BodyItem): Promise<{
     } catch (dbErr: unknown) {
       const msg = dbErr instanceof Error ? dbErr.message : String(dbErr)
       errors.push(`Database save failed: ${msg}`)
-      try {
-        fs.unlinkSync(filePath)
-      } catch {
-        /* ignore */
-      }
     }
   }
 

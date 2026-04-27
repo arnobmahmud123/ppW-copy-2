@@ -4673,7 +4673,7 @@ function handleKeyDown(
 	                 {conversationMode !== "ai" ? (
 	                 <div
                     ref={mainComposerShellRef}
-                    className="absolute inset-x-0 bottom-0 z-20 max-h-[calc(100%-1rem)] shrink-0 overflow-y-auto overscroll-contain border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] p-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
+                    className="absolute inset-x-0 bottom-0 z-20 max-h-[calc(100%-1rem)] shrink-0 overflow-visible border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.94)_0%,rgba(248,244,255,0.97)_100%)] p-5 shadow-[0_-16px_42px_-28px_rgba(139,92,246,0.28)] backdrop-blur-sm"
                     style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                   >
                     <div className="mx-auto w-full max-w-[1080px]">
@@ -5290,7 +5290,7 @@ onClick={() => {
                     <div
                       ref={threadComposerShellRef}
                       className={cn(
-                        "absolute inset-x-0 bottom-0 z-20 max-h-[calc(100%-0.75rem)] overflow-y-auto overscroll-contain border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.95)_0%,rgba(251,247,255,0.98)_100%)] p-4 shadow-[0_-14px_36px_-28px_rgba(139,92,246,0.32)] backdrop-blur-sm",
+                              "absolute inset-x-0 bottom-0 z-20 max-h-[calc(100%-0.75rem)] overflow-visible border-t border-[#ebe5ff] bg-[linear-gradient(180deg,rgba(255,254,254,0.95)_0%,rgba(251,247,255,0.98)_100%)] p-4 shadow-[0_-14px_36px_-28px_rgba(139,92,246,0.32)] backdrop-blur-sm",
                         dragTarget === "thread"
                           ? "bg-[linear-gradient(180deg,#fffaff_0%,#f5f8ff_100%)]"
                           : ""

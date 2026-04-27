@@ -186,6 +186,12 @@ interface ComplianceIssue {
   label: string
 }
 
+interface AssigneeOption {
+  id: string
+  name: string
+  role: "CONTRACTOR" | "COORDINATOR" | "PROCESSOR" | "CLIENT" | "ADMIN"
+}
+
 type WorkOrderColumnKey =
   | "action"
   | "ipl"
@@ -311,9 +317,15 @@ export default function AdminWorkOrders() {
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
   const [complianceByWorkOrderId, setComplianceByWorkOrderId] = useState<Record<string, ComplianceIssue[]>>({})
   const [complianceLoading, setComplianceLoading] = useState(false)
+  const [assignableUsers, setAssignableUsers] = useState<AssigneeOption[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
 
   useEffect(() => {
     fetchWorkOrders()
+  }, [])
+
+  useEffect(() => {
+    fetchAssignableUsers()
   }, [])
 
   const fetchWorkOrders = async () => {
@@ -327,6 +339,21 @@ export default function AdminWorkOrders() {
       console.error("Error fetching work orders:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAssignableUsers = async () => {
+    try {
+      setUsersLoading(true)
+      const response = await fetch("/api/users")
+      if (!response.ok) return
+      const users = await response.json()
+      if (!Array.isArray(users)) return
+      setAssignableUsers(users)
+    } catch (error) {
+      console.error("Error fetching assignees:", error)
+    } finally {
+      setUsersLoading(false)
     }
   }
 
@@ -2025,6 +2052,9 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
   const escalatedOrders = [...overdueOrders, ...dueSoonOrders].filter(
     (order, index, arr) => arr.findIndex((candidate) => candidate.id === order.id) === index
   )
+  const contractorOptions = assignableUsers.filter((user) => user.role === "CONTRACTOR")
+  const coordinatorOptions = assignableUsers.filter((user) => user.role === "COORDINATOR")
+  const processorOptions = assignableUsers.filter((user) => user.role === "PROCESSOR")
 
   const hasAppliedFilters =
     Object.values(appliedColumnFilters).some((value) => value?.trim()) ||
@@ -2128,24 +2158,45 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
               />
             </div>
           </div>
-          <input
+          <select
             value={bulkContractorId}
             onChange={(e) => setBulkContractorId(e.target.value)}
-            placeholder="Bulk assign contractor ID"
             className="rounded-xl border border-[#e4dcff] bg-white px-3 py-2 text-sm text-[#2b3159]"
-          />
-          <input
+            disabled={usersLoading}
+          >
+            <option value="">{usersLoading ? "Loading contractors..." : "Bulk assign contractor"}</option>
+            {contractorOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+          <select
             value={bulkCoordinatorId}
             onChange={(e) => setBulkCoordinatorId(e.target.value)}
-            placeholder="Bulk assign coordinator ID"
             className="rounded-xl border border-[#e4dcff] bg-white px-3 py-2 text-sm text-[#2b3159]"
-          />
-          <input
+            disabled={usersLoading}
+          >
+            <option value="">{usersLoading ? "Loading coordinators..." : "Bulk assign coordinator"}</option>
+            {coordinatorOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+          <select
             value={bulkProcessorId}
             onChange={(e) => setBulkProcessorId(e.target.value)}
-            placeholder="Bulk assign processor ID"
             className="rounded-xl border border-[#e4dcff] bg-white px-3 py-2 text-sm text-[#2b3159]"
-          />
+            disabled={usersLoading}
+          >
+            <option value="">{usersLoading ? "Loading processors..." : "Bulk assign processor"}</option>
+            {processorOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
           <select
             value={bulkStatus}
             onChange={(e) => setBulkStatus(e.target.value)}
@@ -2290,6 +2341,53 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
             <div className="text-xs font-semibold uppercase tracking-wide text-[#1d7a53]">Asset Section</div>
             <div className="mt-1 text-sm text-[#1f6348]">
               {unassignedAssetOrders.slice(0, 2).map((order) => order.workOrderNumber || order.id).join(", ") || "All active orders assigned"}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-[#f0d4db] bg-[#fff5f8] p-3">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#a3435c]">Overdue list</div>
+            <div className="space-y-1 text-xs">
+              {overdueOrders.slice(0, 5).map((order) => (
+                <Link key={order.id} href={`/dashboard/admin/work-orders/${order.id}`} className="block text-[#8f3651] hover:underline">
+                  {(order.workOrderNumber || order.id).slice(-10)} - {order.addressLine1}
+                </Link>
+              ))}
+              {overdueOrders.length === 0 && <span className="text-[#9f7381]">No overdue work orders</span>}
+            </div>
+          </div>
+          <div className="rounded-xl border border-[#ffe6be] bg-[#fff8e9] p-3">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#9a6a14]">Due soon reminders</div>
+            <div className="space-y-1 text-xs">
+              {dueSoonOrders.slice(0, 5).map((order) => (
+                <Link key={order.id} href={`/dashboard/admin/work-orders/${order.id}`} className="block text-[#8a621b] hover:underline">
+                  {(order.workOrderNumber || order.id).slice(-10)} - {getDueDateMeta(order.dueDate).label}
+                </Link>
+              ))}
+              {dueSoonOrders.length === 0 && <span className="text-[#9a7d48]">No due reminders</span>}
+            </div>
+          </div>
+          <div className="rounded-xl border border-[#d9e7ff] bg-[#f4f8ff] p-3">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#355ea6]">Pending review queue</div>
+            <div className="space-y-1 text-xs">
+              {pendingReviewOrders.slice(0, 5).map((order) => (
+                <Link key={order.id} href={`/dashboard/admin/work-orders/${order.id}`} className="block text-[#345990] hover:underline">
+                  {(order.workOrderNumber || order.id).slice(-10)} - {getStatusDisplayName(order.status)}
+                </Link>
+              ))}
+              {pendingReviewOrders.length === 0 && <span className="text-[#6281b3]">No pending reviews</span>}
+            </div>
+          </div>
+          <div className="rounded-xl border border-[#d7efe0] bg-[#f2fbf6] p-3">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#1d7a53]">Asset queue</div>
+            <div className="space-y-1 text-xs">
+              {unassignedAssetOrders.slice(0, 5).map((order) => (
+                <Link key={order.id} href={`/dashboard/admin/work-orders/${order.id}`} className="block text-[#1b6a4a] hover:underline">
+                  {(order.workOrderNumber || order.id).slice(-10)} - Unassigned
+                </Link>
+              ))}
+              {unassignedAssetOrders.length === 0 && <span className="text-[#5d8a76]">No unassigned assets</span>}
             </div>
           </div>
         </div>

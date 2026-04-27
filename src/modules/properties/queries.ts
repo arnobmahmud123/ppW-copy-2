@@ -26,6 +26,19 @@ const PHOTO_CATEGORIES = [
   "PHOTO_INSPECTION",
 ] as const
 
+const DOCUMENT_CATEGORIES = ["DOCUMENT_PDF", "DOCUMENT_PCR", "OTHER"] as const
+
+/** Prisma only has one `files` relation on WorkOrder — load photos + docs together, split in code. */
+const WORK_ORDER_FILE_CATEGORIES = [...PHOTO_CATEGORIES, ...DOCUMENT_CATEGORIES] as const
+
+function isPhotoFileCategory(category: string) {
+  return (PHOTO_CATEGORIES as readonly string[]).includes(category)
+}
+
+function isDocumentFileCategory(category: string) {
+  return (DOCUMENT_CATEGORIES as readonly string[]).includes(category)
+}
+
 const ACTIVE_STATUSES = new Set([
   "NEW",
   "UNASSIGNED",
@@ -397,22 +410,8 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
       files: {
         where: {
           category: {
-            in: [...PHOTO_CATEGORIES],
+            in: [...WORK_ORDER_FILE_CATEGORIES],
           },
-        },
-        select: {
-          id: true,
-          url: true,
-          category: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-      documentFiles: {
-        where: {
-          category: { in: ["DOCUMENT_PDF", "DOCUMENT_PCR", "OTHER"] },
         },
         select: {
           id: true,
@@ -542,14 +541,16 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
 
   const gallery: PropertyGalleryItem[] = workOrders
     .flatMap((workOrder) =>
-      workOrder.files.map((file) => ({
-        id: file.id,
-        url: file.url,
-        category: file.category,
-        createdAt: file.createdAt.toISOString(),
-        workOrderId: workOrder.id,
-        workOrderNumber: workOrder.workOrderNumber ?? null,
-      }))
+      workOrder.files
+        .filter((file) => isPhotoFileCategory(file.category))
+        .map((file) => ({
+          id: file.id,
+          url: file.url,
+          category: file.category,
+          createdAt: file.createdAt.toISOString(),
+          workOrderId: workOrder.id,
+          workOrderNumber: workOrder.workOrderNumber ?? null,
+        }))
     )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
@@ -557,15 +558,17 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
 
   const documents: PropertyDocumentItem[] = workOrders
     .flatMap((workOrder) =>
-      workOrder.documentFiles.map((file) => ({
-        id: file.id,
-        url: file.url,
-        category: file.category,
-        mimeType: file.mimeType,
-        createdAt: file.createdAt.toISOString(),
-        workOrderId: workOrder.id,
-        workOrderNumber: workOrder.workOrderNumber ?? null,
-      }))
+      workOrder.files
+        .filter((file) => isDocumentFileCategory(file.category))
+        .map((file) => ({
+          id: file.id,
+          url: file.url,
+          category: file.category,
+          mimeType: file.mimeType,
+          createdAt: file.createdAt.toISOString(),
+          workOrderId: workOrder.id,
+          workOrderNumber: workOrder.workOrderNumber ?? null,
+        }))
     )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
@@ -700,7 +703,7 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
     dueDate: workOrder.dueDate?.toISOString() ?? null,
     fieldComplete: workOrder.fieldComplete?.toISOString() ?? null,
     updatedAt: workOrder.updatedAt.toISOString(),
-    photoCount: workOrder._count.files,
+    photoCount: workOrder.files.filter((file) => isPhotoFileCategory(file.category)).length,
     messageCount: workOrder._count.messages + workOrder._count.threadedMessages,
     clientName: workOrder.client.company || workOrder.client.name,
     contractorName:
@@ -819,7 +822,11 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
     ).length,
     totalInvoices: workOrders.filter((workOrder) => Boolean(workOrder.invoice)).length,
     totalInvoiceAmount: workOrders.reduce((sum, workOrder) => sum + (workOrder.invoice?.clientTotal ?? 0), 0),
-    totalPhotos: workOrders.reduce((sum, workOrder) => sum + workOrder._count.files, 0),
+    totalPhotos: workOrders.reduce(
+      (sum, workOrder) =>
+        sum + workOrder.files.filter((file) => isPhotoFileCategory(file.category)).length,
+      0
+    ),
   }
 
   const openCount = summary.openWorkOrders

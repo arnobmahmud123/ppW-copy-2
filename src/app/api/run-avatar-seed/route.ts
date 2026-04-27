@@ -2,6 +2,24 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDemoUserAvatar, isDemoPortraitUrl } from "@/lib/demo-user-avatars";
 
+async function fetchImageAsDataUrl(url: string, cache: Map<string, string>) {
+  const cached = cache.get(url);
+  if (cached) {
+    return cached;
+  }
+
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Unable to fetch demo portrait from ${url}`);
+  }
+
+  const mimeType = response.headers.get("content-type") || "image/jpeg";
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const dataUrl = `data:${mimeType};base64,${bytes.toString("base64")}`;
+  cache.set(url, dataUrl);
+  return dataUrl;
+}
+
 export async function GET() {
   try {
     const channels = await db.messageThread.findMany({
@@ -49,16 +67,19 @@ export async function GET() {
       },
     });
 
+    const portraitCache = new Map<string, string>();
     let updatedUsers = 0;
     for (const user of users) {
-      const nextAvatarUrl = getDemoUserAvatar(user);
+      const nextAvatarUrl = await fetchImageAsDataUrl(getDemoUserAvatar(user), portraitCache);
       const currentAvatarUrl = user.avatarUrl?.trim() ?? null;
       const shouldUpdateUser =
         !currentAvatarUrl ||
         currentAvatarUrl.startsWith("data:image/svg+xml") ||
         currentAvatarUrl.includes("ui-avatars.com") ||
         currentAvatarUrl.includes("via.placeholder.com") ||
-        isDemoPortraitUrl(currentAvatarUrl);
+        isDemoPortraitUrl(currentAvatarUrl) ||
+        currentAvatarUrl.startsWith("data:image/jpeg;base64") ||
+        currentAvatarUrl.startsWith("data:image/png;base64");
 
       if (!shouldUpdateUser) {
         continue;

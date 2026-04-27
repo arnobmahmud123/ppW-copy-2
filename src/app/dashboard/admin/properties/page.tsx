@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   Loader2,
   MapPin,
   Search,
+  Sparkles,
 } from "lucide-react"
 
 import type { PropertyListItem } from "@/modules/properties/types"
@@ -31,39 +32,42 @@ export default function AdminPropertiesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [importingStreet, setImportingStreet] = useState(false)
+  const [importMessage, setImportMessage] = useState("")
+
+  const loadProperties = useCallback(async (opts?: { signal?: AbortSignal; silent?: boolean }) => {
+    try {
+      if (!opts?.silent) {
+        setLoading(true)
+      }
+      setError("")
+      const response = await fetch("/api/admin/properties", {
+        cache: "no-store",
+        signal: opts?.signal,
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || "Unable to load properties")
+      }
+
+      const payload = await response.json()
+      setProperties(Array.isArray(payload.properties) ? payload.properties : [])
+    } catch (fetchError) {
+      if ((fetchError as Error).name === "AbortError") return
+      setError(fetchError instanceof Error ? fetchError.message : "Unable to load properties")
+    } finally {
+      if (!opts?.signal?.aborted && !opts?.silent) {
+        setLoading(false)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
-
-    async function loadProperties() {
-      try {
-        setLoading(true)
-        setError("")
-        const response = await fetch("/api/admin/properties", {
-          cache: "no-store",
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}))
-          throw new Error(payload.error || "Unable to load properties")
-        }
-
-        const payload = await response.json()
-        setProperties(Array.isArray(payload.properties) ? payload.properties : [])
-      } catch (fetchError) {
-        if ((fetchError as Error).name === "AbortError") return
-        setError(fetchError instanceof Error ? fetchError.message : "Unable to load properties")
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    void loadProperties()
+    void loadProperties({ signal: controller.signal })
     return () => controller.abort()
-  }, [])
+  }, [loadProperties])
 
   const filteredProperties = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()
@@ -131,6 +135,123 @@ export default function AdminPropertiesPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="rounded-[28px] border border-[#dcd5ff] bg-[linear-gradient(135deg,#ffffff_0%,#f4f0ff_45%,#eef6ff_100%)] p-5 shadow-[0_16px_36px_rgba(196,186,255,0.14)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#eadfff] bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#8a78cb]">
+              <Sparkles className="h-3.5 w-3.5" />
+              Exterior imagery
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-[#5f6f91]">
+              Import high-resolution street-level photos from{" "}
+              <strong className="font-semibold text-[#26324f]">Google Street View</strong> (max 640×640 per Google’s
+              API) onto each property’s primary work order — one shot as{" "}
+              <span className="whitespace-nowrap font-medium text-[#26324f]">PHOTO_BEFORE</span> (front / coverage) and
+              two additional angles for the gallery. Requires{" "}
+              <code className="rounded bg-white/90 px-1.5 py-0.5 text-xs text-[#4a5682]">GOOGLE_MAPS_API_KEY</code>{" "}
+              with Geocoding + Street View Static API enabled. Third-party listing sites such as Zillow do not provide a
+              licensed bulk photo API.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              disabled={importingStreet}
+              onClick={async () => {
+                setImportingStreet(true)
+                setImportMessage("")
+                try {
+                  const res = await fetch("/api/admin/properties/import-street-imagery", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      dryRun: true,
+                      limit: 500,
+                      offset: 0,
+                      skipExistingBefore: true,
+                    }),
+                  })
+                  const data = await res.json().catch(() => ({}))
+                  if (!res.ok) throw new Error(data.error || "Dry run failed")
+                  setImportMessage(
+                    `Dry run: ${data.wouldProcess ?? 0} properties would receive imagery, ${data.wouldSkip ?? 0} skipped (already have before photos). Total distinct properties: ${data.totalProperties ?? "—"}.`
+                  )
+                } catch (e) {
+                  setImportMessage(e instanceof Error ? e.message : "Dry run failed")
+                } finally {
+                  setImportingStreet(false)
+                }
+              }}
+              className="rounded-[18px] border border-[#dcd5ff] bg-white px-4 py-2.5 text-sm font-semibold text-[#4c5d8f] shadow-[0_8px_20px_rgba(180,167,239,0.15)] transition hover:bg-[#faf8ff] disabled:opacity-50"
+            >
+              {importingStreet ? "Working…" : "Dry run"}
+            </button>
+            <button
+              type="button"
+              disabled={importingStreet}
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    "Import Street View imagery for up to 30 properties at a time (properties without PHOTO_BEFORE). Continue?"
+                  )
+                ) {
+                  return
+                }
+                setImportingStreet(true)
+                setImportMessage("")
+                try {
+                  let offset = 0
+                  const limit = 30
+                  let totalImages = 0
+                  let batches = 0
+                  let reportedTotal = 0
+                  while (true) {
+                    const res = await fetch("/api/admin/properties/import-street-imagery", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        dryRun: false,
+                        limit,
+                        offset,
+                        skipExistingBefore: true,
+                        throttleMs: 120,
+                      }),
+                    })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok) throw new Error(data.error || "Import failed")
+                    reportedTotal = data.totalProperties ?? reportedTotal
+                    totalImages += data.imagesCreated ?? 0
+                    batches += 1
+                    const batchSize = data.batchSize ?? 0
+                    if (batchSize === 0) break
+                    offset += limit
+                    if (batchSize < limit) break
+                    if (reportedTotal > 0 && offset >= reportedTotal) break
+                    if (batches > 200) break
+                  }
+                  setImportMessage(
+                    `Import finished in ${batches} batch(es). Images created: ${totalImages}. Run dry run or repeat import to cover remaining properties (API processes ${limit} per request).`
+                  )
+                  await loadProperties({ silent: true })
+                } catch (e) {
+                  setImportMessage(e instanceof Error ? e.message : "Import failed")
+                } finally {
+                  setImportingStreet(false)
+                }
+              }}
+              className="rounded-[18px] border border-[#c9b8ff] bg-[linear-gradient(135deg,#7c63ff_0%,#5b8cff_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(100,80,230,0.35)] transition hover:brightness-105 disabled:opacity-50"
+            >
+              {importingStreet ? "Importing…" : "Import Street View (batch)"}
+            </button>
+          </div>
+        </div>
+        {importMessage ? (
+          <p className="mt-4 text-sm text-[#4a5682]">
+            {importMessage}
+          </p>
+        ) : null}
       </div>
 
       <div className="rounded-[28px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f9f7ff_100%)] p-4 shadow-[0_16px_36px_rgba(196,186,255,0.12)]">

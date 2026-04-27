@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
 import PhotoEditorModal from "@/components/PhotoEditorModal"
+import { buildPropertyKey } from "@/modules/properties/propertyKey"
 import { 
   FileText, 
   Search,
@@ -23,6 +25,7 @@ import {
   MoreVertical,
   Copy,
   ChevronDown,
+  ChevronUp,
   Image,
   Clipboard,
   ChevronLeft,
@@ -30,7 +33,8 @@ import {
   Settings,
   Send,
   Printer,
-  X
+  X,
+  Building2,
 } from "lucide-react"
 
 interface WorkOrder {
@@ -256,8 +260,11 @@ const bulkStatusOptions = [
   "CANCELLED",
 ]
 
-export default function AdminWorkOrders() {
+function AdminWorkOrdersContent() {
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const propertyKeyParam = searchParams.get("propertyKey")
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [loading, setLoading] = useState(true)
   const defaultStatusFilters: StatusFilters = {
@@ -278,7 +285,7 @@ export default function AdminWorkOrders() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(200)
-  const [showFilterPanel, setShowFilterPanel] = useState(false)
+  const [showFilterPanel, setShowFilterPanel] = useState(true)
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [historyModalOrder, setHistoryModalOrder] = useState<WorkOrder | null>(null)
   const [historyModalLoading, setHistoryModalLoading] = useState(false)
@@ -327,6 +334,28 @@ export default function AdminWorkOrders() {
   useEffect(() => {
     fetchAssignableUsers()
   }, [])
+
+  const workOrdersForTable = useMemo(() => {
+    const list = workOrders || []
+    const key = propertyKeyParam?.trim()
+    if (!key) return list
+    return list.filter(
+      (order) =>
+        buildPropertyKey({
+          addressLine1: order.addressLine1,
+          city: order.city,
+          state: order.state,
+          postalCode: order.postalCode,
+        }) === key
+    )
+  }, [workOrders, propertyKeyParam])
+
+  const clearPropertyFilter = () => {
+    const next = new URLSearchParams(searchParams.toString())
+    next.delete("propertyKey")
+    const q = next.toString()
+    router.push(q ? `/dashboard/admin/work-orders?${q}` : "/dashboard/admin/work-orders", { scroll: false })
+  }
 
   const fetchWorkOrders = async () => {
     try {
@@ -1531,7 +1560,7 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
     window.open(`/api/work-orders/${photoModalOrder.id}/photos/download?scope=all`, "_blank")
   }
 
-  const filteredWorkOrders = (workOrders || []).filter(order => {
+  const filteredWorkOrders = (workOrdersForTable || []).filter(order => {
     // Status filtering
     const statusDisplayName = getStatusDisplayName(order.status).toLowerCase()
     const statusMatches = 
@@ -1820,13 +1849,29 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
         return order.id.slice(-7)
       case "workOrderNumber":
         return order.workOrderNumber || order.id
-      case "address":
+      case "address": {
+        const propertyHref = `/dashboard/admin/properties/${buildPropertyKey({
+          addressLine1: order.addressLine1,
+          city: order.city,
+          state: order.state,
+          postalCode: order.postalCode,
+        })}`
         return (
-          <div className="flex items-center">
-            <MapPin className="mr-1 h-4 w-4 text-[#7f8ab0]" />
-            {order.addressLine1}
+          <div className="flex min-w-0 max-w-[280px] flex-col gap-1.5 sm:max-w-none">
+            <div className="flex items-center">
+              <MapPin className="mr-1 h-4 w-4 flex-shrink-0 text-[#7f8ab0]" />
+              <span className="truncate">{order.addressLine1}</span>
+            </div>
+            <Link
+              href={propertyHref}
+              className="inline-flex w-fit max-w-full items-center gap-1 rounded-lg border-2 border-[#b8a0f2] bg-[#faf7ff] px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-[#5b3d9e] shadow-sm ring-1 ring-[#e4dcff] hover:bg-[#f0e8ff] hover:ring-[#c4b0f0]"
+            >
+              <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">Property</span>
+            </Link>
           </div>
         )
+      }
       case "zip":
         return order.postalCode
       case "photos":
@@ -2077,53 +2122,93 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
       {/* Navigation Tabs */}
       <div className="border-b border-[#ebe5ff] bg-[linear-gradient(180deg,#ffffff_0%,#f9f5ff_100%)]">
         <div className="px-6">
-          <nav className="flex space-x-8">
+          <nav className="flex flex-wrap gap-2 sm:space-x-8">
             <button className="rounded-t-[22px] border-b-2 border-[#cf7cf4] bg-[linear-gradient(135deg,#f9d2f5_0%,#d79bf5_45%,#82a8ff_100%)] px-5 py-4 font-medium text-[#2b3159] shadow-[0_12px_28px_rgba(204,156,255,0.2)]">
               All Work Order
             </button>
-            <button className="border-b-2 border-transparent py-4 px-1 text-[#7a86b3] hover:text-[#2b3159]">
+            <Link
+              href="/dashboard/admin/properties"
+              className="inline-flex items-center border-b-2 border-transparent py-4 px-1 text-sm font-medium text-[#5b4d9a] hover:text-[#2b3159] sm:py-4"
+            >
+              <Building2 className="mr-2 h-4 w-4" />
+              Property management
+            </Link>
+            <span className="inline-flex items-center border-b-2 border-transparent py-4 px-1 text-sm text-[#7a86b3] sm:py-4">
               WO Completion Tracker
-            </button>
-            <button className="border-b-2 border-transparent py-4 px-1 text-[#7a86b3] hover:text-[#2b3159]">
+            </span>
+            <span className="inline-flex items-center border-b-2 border-transparent py-4 px-1 text-sm text-[#7a86b3] sm:py-4">
               New Contractor Tracker
-            </button>
+            </span>
           </nav>
         </div>
       </div>
 
+      {propertyKeyParam && (
+        <div className="border-b-2 border-[#c4b0f0] bg-[linear-gradient(90deg,#f5f0ff_0%,#ffffff_50%,#eef4ff_100%)] px-6 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-medium text-[#3a3566]">
+              <span className="text-[#6d58c9]">Property filter on:</span> only work orders for this address group are shown.
+            </p>
+            <button
+              type="button"
+              onClick={clearPropertyFilter}
+              className="inline-flex w-fit items-center justify-center rounded-xl border-2 border-[#8b6fe6] bg-white px-4 py-2 text-sm font-bold text-[#4c1d95] shadow-sm hover:bg-[#faf5ff]"
+            >
+              Show all work orders
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Action and Filter Panel */}
       <div className="border-b border-[#ebe5ff] bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_100%)] px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
-            <button className="text-sm text-[#7280ad] hover:text-[#2b3159]">Action</button>
-            <button className="text-sm text-[#7280ad] hover:text-[#2b3159]">Create Filters</button>
-            <button className="text-sm text-[#7280ad] hover:text-[#2b3159]">Load Filters</button>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowFilterPanel((open) => !open)}
+              className="inline-flex items-center gap-2 rounded-2xl border-2 border-[#7c3aed] bg-white px-4 py-2.5 text-sm font-bold text-[#5b21b6] shadow-[0_4px_14px_rgba(124,58,237,0.2)] ring-2 ring-[#e9d5ff] hover:bg-[#faf5ff]"
+            >
+              {showFilterPanel ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {showFilterPanel ? "Hide tools & filters" : "Show tools & filters"}
+            </button>
+            <div className="hidden h-6 w-px bg-[#d9cfee] sm:block" aria-hidden />
             <div className="flex items-center space-x-2">
               <button
                 onClick={openColumnsModal}
-                className="text-sm text-[#7280ad] hover:text-[#2b3159]"
+                className="text-sm font-medium text-[#5a5f8a] hover:text-[#2b3159]"
               >
                 Columns
               </button>
-              <span className="text-sm text-[#16a36f]">{hasAppliedFilters ? "Filters Applied" : "No Filter Applied..."}</span>
+              <span className="text-sm text-[#16a36f]">{hasAppliedFilters ? "Filters applied" : "No column filters"}</span>
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={runFilter}
-              className="rounded-2xl bg-[linear-gradient(180deg,#4b7ff7_0%,#3468e8_100%)] px-4 py-2 text-sm text-white"
+              className="rounded-2xl bg-[linear-gradient(180deg,#4b7ff7_0%,#3468e8_100%)] px-4 py-2 text-sm font-semibold text-white"
             >
               Run Filter
             </button>
             <button
               onClick={resetFilter}
-              className="rounded-2xl bg-[linear-gradient(180deg,#4b7ff7_0%,#3468e8_100%)] px-4 py-2 text-sm text-white"
+              className="rounded-2xl bg-[linear-gradient(180deg,#4b7ff7_0%,#3468e8_100%)] px-4 py-2 text-sm font-semibold text-white"
             >
               Reset Filter
             </button>
           </div>
         </div>
 
+        {!showFilterPanel && (
+          <div className="mb-4 rounded-2xl border-2 border-dashed border-[#b8a5e6] bg-[#faf8ff] px-4 py-3 text-center sm:text-left">
+            <p className="text-sm text-[#5c5480]">
+              Tools, bulk actions, search, and status filters are hidden. Use <strong>Show tools & filters</strong> above to expand this panel.
+            </p>
+          </div>
+        )}
+
+        {showFilterPanel && (
+          <>
         <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-[#e4dcff] bg-white/70 px-3 py-2 text-sm text-[#435072]">
             <div className="font-semibold text-[#2b3159]">Auto Overdue Alerts</div>
@@ -2406,6 +2491,8 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
               ))}
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
 
@@ -3152,5 +3239,19 @@ Field Complete: ${order.fieldComplete ? new Date(order.fieldComplete).toLocaleDa
         />
       )}
     </div>
+  )
+}
+
+export default function AdminWorkOrders() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[320px] items-center justify-center rounded-[32px] border border-[#e3dcff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f4ff_52%,#eef4ff_100%)] text-[#7280ad]">
+          Loading work orders…
+        </div>
+      }
+    >
+      <AdminWorkOrdersContent />
+    </Suspense>
   )
 }

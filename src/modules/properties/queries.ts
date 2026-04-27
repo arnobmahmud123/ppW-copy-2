@@ -1,22 +1,22 @@
 import "server-only"
 
 import { db } from "@/lib/db"
+import { buildPropertyIdentityFromAddress, buildPropertyKey } from "@/modules/properties/propertyKey"
 import type {
   PropertyDetailResponse,
+  PropertyDocumentItem,
   PropertyGalleryItem,
   PropertyListItem,
+  PropertyNoteItem,
+  PropertyStatusSummary,
   PropertyTimelineEvent,
   PropertyWorkOrderHistoryRow,
 } from "@/modules/properties/types"
+import type { PropertyAddressLike } from "@/modules/properties/propertyKey"
 
 type RawTask = Record<string, unknown>
 
-type PropertyIdentity = {
-  addressLine1: string
-  city: string
-  state: string
-  postalCode: string
-}
+type PropertyIdentity = PropertyAddressLike
 
 const PHOTO_CATEGORIES = [
   "PHOTO_BEFORE",
@@ -45,21 +45,8 @@ const COMPLETED_STATUSES = new Set([
   "CLOSED",
 ])
 
-function normalizePropertyPart(value: string | null | undefined) {
-  return (value || "").trim().replace(/\s+/g, " ").toLowerCase()
-}
-
 function buildPropertyIdentityFromRecord(record: PropertyIdentity): PropertyIdentity {
-  return {
-    addressLine1: normalizePropertyPart(record.addressLine1),
-    city: normalizePropertyPart(record.city),
-    state: normalizePropertyPart(record.state),
-    postalCode: normalizePropertyPart(record.postalCode),
-  }
-}
-
-function buildPropertyKey(record: PropertyIdentity) {
-  return Buffer.from(JSON.stringify(buildPropertyIdentityFromRecord(record)), "utf8").toString("base64url")
+  return buildPropertyIdentityFromAddress(record)
 }
 
 function parsePropertyKey(propertyKey: string): PropertyIdentity | null {
@@ -113,6 +100,11 @@ function getTaskType(task: RawTask) {
   return String(task.taskType || "").trim().toLowerCase()
 }
 
+function pickFrontOfHousePhoto(files: { url: string; category: string }[]) {
+  const before = files.find((f) => f.category === "PHOTO_BEFORE")
+  return before?.url ?? files[0]?.url ?? null
+}
+
 export async function getAdminPropertiesOverview(): Promise<PropertyListItem[]> {
   const workOrders = await db.workOrder.findMany({
     select: {
@@ -157,12 +149,13 @@ export async function getAdminPropertiesOverview(): Promise<PropertyListItem[]> 
         select: {
           id: true,
           url: true,
+          category: true,
           createdAt: true,
         },
         orderBy: {
           createdAt: "desc",
         },
-        take: 1,
+        take: 8,
       },
       _count: {
         select: {
@@ -184,6 +177,7 @@ export async function getAdminPropertiesOverview(): Promise<PropertyListItem[]> 
       clientSet: Set<string>
       contractorSet: Set<string>
       serviceSet: Set<string>
+      hasBeforeFront: boolean
     }
   >()
 
@@ -204,7 +198,7 @@ export async function getAdminPropertiesOverview(): Promise<PropertyListItem[]> 
         city: workOrder.city,
         state: workOrder.state,
         postalCode: workOrder.postalCode,
-        frontImageUrl: workOrder.files[0]?.url ?? null,
+        frontImageUrl: pickFrontOfHousePhoto(workOrder.files),
         totalWorkOrders: 0,
         openWorkOrders: 0,
         completedWorkOrders: 0,
@@ -228,6 +222,7 @@ export async function getAdminPropertiesOverview(): Promise<PropertyListItem[]> 
         clientSet: new Set<string>(),
         contractorSet: new Set<string>(),
         serviceSet: new Set<string>(),
+        hasBeforeFront: workOrder.files.some((f) => f.category === "PHOTO_BEFORE"),
       })
     }
 
@@ -265,8 +260,18 @@ export async function getAdminPropertiesOverview(): Promise<PropertyListItem[]> 
 
     aggregate.serviceSet.add(workOrder.serviceType)
 
-    if (!aggregate.frontImageUrl && workOrder.files[0]?.url) {
-      aggregate.frontImageUrl = workOrder.files[0].url
+    const nextFront = pickFrontOfHousePhoto(workOrder.files)
+    const nextHasBefore = workOrder.files.some((f) => f.category === "PHOTO_BEFORE")
+    if (nextFront) {
+      if (!aggregate.frontImageUrl) {
+        aggregate.frontImageUrl = nextFront
+        aggregate.hasBeforeFront = nextHasBefore
+      } else if (nextHasBefore) {
+        aggregate.frontImageUrl = nextFront
+        aggregate.hasBeforeFront = true
+      } else if (!aggregate.hasBeforeFront) {
+        aggregate.frontImageUrl = nextFront
+      }
     }
 
     if (latestUpdateTime >= aggregate.latestUpdateTime) {
@@ -405,6 +410,21 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
           createdAt: "desc",
         },
       },
+      documentFiles: {
+        where: {
+          category: { in: ["DOCUMENT_PDF", "DOCUMENT_PCR", "OTHER"] },
+        },
+        select: {
+          id: true,
+          url: true,
+          category: true,
+          mimeType: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
       messages: {
         select: {
           id: true,
@@ -419,7 +439,7 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
         orderBy: {
           createdAt: "desc",
         },
-        take: 5,
+        take: 20,
       },
       threadedMessages: {
         select: {
@@ -436,7 +456,7 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
         orderBy: {
           createdAt: "desc",
         },
-        take: 8,
+        take: 25,
       },
       _count: {
         select: {
@@ -532,6 +552,49 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
       }))
     )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  const beforeHousePhoto = gallery.find((file) => file.category === "PHOTO_BEFORE")
+
+  const documents: PropertyDocumentItem[] = workOrders
+    .flatMap((workOrder) =>
+      workOrder.documentFiles.map((file) => ({
+        id: file.id,
+        url: file.url,
+        category: file.category,
+        mimeType: file.mimeType,
+        createdAt: file.createdAt.toISOString(),
+        workOrderId: workOrder.id,
+        workOrderNumber: workOrder.workOrderNumber ?? null,
+      }))
+    )
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  const notes: PropertyNoteItem[] = workOrders
+    .flatMap((workOrder) => {
+      const wn = workOrder.workOrderNumber ?? null
+      return [
+        ...workOrder.messages.map((message) => ({
+          id: `legacy-${message.id}`,
+          source: "legacy" as const,
+          body: message.content,
+          at: message.createdAt.toISOString(),
+          workOrderId: workOrder.id,
+          workOrderNumber: wn,
+          author: message.author.name,
+        })),
+        ...workOrder.threadedMessages.map((message) => ({
+          id: `thread-${message.id}`,
+          source: "thread" as const,
+          body: message.body,
+          at: message.createdAt.toISOString(),
+          workOrderId: workOrder.id,
+          workOrderNumber: wn,
+          author: message.createdByUser?.name || "System",
+        })),
+      ]
+    })
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, 40)
 
   const timeline: PropertyTimelineEvent[] = workOrders
     .flatMap((workOrder) => {
@@ -759,6 +822,29 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
     totalPhotos: workOrders.reduce((sum, workOrder) => sum + workOrder._count.files, 0),
   }
 
+  const openCount = summary.openWorkOrders
+  const closedOrCancelled = workOrders.filter(
+    (workOrder) => workOrder.status === "CLOSED" || workOrder.status === "CANCELLED"
+  ).length
+  const inProgress = workOrders.filter((workOrder) =>
+    ["IN_PROGRESS", "ASSIGNED", "READ"].includes(workOrder.status)
+  ).length
+  const hasOverdue = summary.overdueWorkOrders > 0
+  let primaryLabel = "Active pipeline"
+  if (workOrders.length > 0 && openCount === 0) {
+    primaryLabel = "No open work — see history"
+  }
+  if (hasOverdue) {
+    primaryLabel = "Overdue work — follow up"
+  }
+  const propertyStatus: PropertyStatusSummary = {
+    openCount,
+    closedOrCancelled,
+    inProgress,
+    hasOverdue,
+    primaryLabel,
+  }
+
   return {
     property: {
       propertyKey,
@@ -767,7 +853,7 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
       city: latestUpdatedWorkOrder.city,
       state: latestUpdatedWorkOrder.state,
       postalCode: latestUpdatedWorkOrder.postalCode,
-      frontImageUrl: gallery[0]?.url ?? null,
+      frontImageUrl: beforeHousePhoto?.url ?? gallery[0]?.url ?? null,
       latestUpdateAt: latestUpdatedWorkOrder.updatedAt.toISOString(),
       lockCode: latestUpdatedWorkOrder.lockCode ?? null,
       lockLocation: latestUpdatedWorkOrder.lockLocation ?? null,
@@ -809,6 +895,9 @@ export async function getAdminPropertyDetail(propertyKey: string): Promise<Prope
         .slice(0, 5),
     },
     gallery,
+    documents,
+    notes,
+    propertyStatus,
     timeline,
     workOrders: workOrderRows,
   }

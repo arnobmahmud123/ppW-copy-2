@@ -45,6 +45,34 @@ export type PropertyTimelineEvent = {
   workOrderNumber: string | null
 }
 
+export type PropertyDocumentItem = {
+  id: string
+  url: string
+  category: string
+  mimeType: string
+  createdAt: string
+  workOrderId: string
+  workOrderNumber: string | null
+}
+
+export type PropertyNoteItem = {
+  id: string
+  source: "thread" | "legacy"
+  body: string
+  at: string
+  workOrderId: string
+  workOrderNumber: string | null
+  author: string
+}
+
+export type PropertyStatusSummary = {
+  openCount: number
+  closedOrCancelled: number
+  inProgress: number
+  hasOverdue: boolean
+  primaryLabel: string
+}
+
 export type PropertyWorkOrderHistoryRow = {
   id: string
   workOrderNumber: string | null
@@ -125,6 +153,9 @@ export type PropertyDetailResponse = {
     }>
   }
   gallery: PropertyGalleryItem[]
+  documents: PropertyDocumentItem[]
+  notes: PropertyNoteItem[]
+  propertyStatus: PropertyStatusSummary
   timeline: PropertyTimelineEvent[]
   workOrders: PropertyWorkOrderHistoryRow[]
 }

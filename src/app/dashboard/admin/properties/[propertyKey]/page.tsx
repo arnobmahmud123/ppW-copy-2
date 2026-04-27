@@ -149,13 +149,21 @@ export default function AdminPropertyDetailPage() {
   return (
     <div className="space-y-6 text-[#435072]">
       <div className="rounded-[30px] border border-[#e3dcff] bg-[linear-gradient(135deg,#ffffff_0%,#f8f4ff_56%,#eef6ff_100%)] p-6 shadow-[0_22px_50px_rgba(193,184,244,0.18)]">
-        <Link
-          href="/dashboard/admin/properties"
-          className="inline-flex items-center gap-2 rounded-full border border-[#eadfff] bg-white/90 px-4 py-2 text-sm font-medium text-[#6d58c9]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to properties
-        </Link>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <Link
+            href="/dashboard/admin/properties"
+            className="inline-flex items-center gap-2 rounded-full border border-[#eadfff] bg-white/90 px-4 py-2 text-sm font-medium text-[#6d58c9]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to properties
+          </Link>
+          <Link
+            href={`/dashboard/admin/work-orders?propertyKey=${encodeURIComponent(data.property.propertyKey)}`}
+            className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[#8b6fe6] bg-white px-5 py-2.5 text-sm font-bold text-[#4c1d95] shadow-md hover:bg-[#faf5ff]"
+          >
+            Open all work orders for this address
+          </Link>
+        </div>
 
         <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -190,8 +198,11 @@ export default function AdminPropertyDetailPage() {
       <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">
         <section className="overflow-hidden rounded-[28px] border border-[#e4ddff] bg-[linear-gradient(180deg,#ffffff_0%,#f8f5ff_100%)] shadow-[0_18px_40px_rgba(196,186,255,0.14)]">
           <div className="border-b border-[#eee7ff] px-6 py-5">
-            <h2 className="text-xl font-semibold text-[#26324f]">Front image + gallery</h2>
-            <p className="mt-1 text-sm text-[#7280ad]">The latest visual record across every work order tied to this property.</p>
+            <h2 className="text-xl font-semibold text-[#26324f]">Front of house + gallery</h2>
+            <p className="mt-1 text-sm text-[#7280ad]">
+              Lead image prefers a <strong className="text-[#4d4a6e]">before</strong> photo when available, then the latest images from every
+              work order on this property.
+            </p>
           </div>
 
           <div className="p-6">
@@ -391,6 +402,92 @@ export default function AdminPropertyDetailPage() {
                 ))
               )}
             </div>
+          </div>
+        </section>
+      </div>
+
+      <section className="rounded-[28px] border-2 border-[#d4c4ff] bg-[linear-gradient(135deg,#fffefb_0%,#f5f0ff_100%)] p-6 shadow-[0_14px_36px_rgba(139,110,240,0.12)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-[#26324f]">Property status and level summary</h2>
+            <p className="mt-1 text-sm text-[#7280ad]">{data.propertyStatus.primaryLabel}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: "Open WOs", value: data.propertyStatus.openCount, tone: "text-[#2f7cff]" },
+              { label: "In progress", value: data.propertyStatus.inProgress, tone: "text-[#7d58df]" },
+              { label: "Closed / cancelled", value: data.propertyStatus.closedOrCancelled, tone: "text-[#6b7280]" },
+              { label: "Overdue risk", value: data.propertyStatus.hasOverdue ? "Yes" : "No", tone: data.propertyStatus.hasOverdue ? "text-[#e16464]" : "text-[#2f9b67]" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-[#ece5ff] bg-white/90 px-4 py-3 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9aa6c4]">{item.label}</div>
+                <div className={`mt-1 text-xl font-bold ${item.tone}`}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-[#8b92a8]">
+          Inspection, contractor, and invoice context also appears in the compliance and finance blocks above, in the full timeline, and in the
+          work order list below.
+        </p>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="rounded-[28px] border border-[#e4ddff] bg-[linear-gradient(180deg,#ffffff_0%,#f9f6ff_100%)] p-6 shadow-[0_12px_30px_rgba(196,186,255,0.1)]">
+          <div className="flex items-center gap-3">
+            <FileText className="h-6 w-6 text-[#6f63ff]" />
+            <div>
+              <h2 className="text-lg font-semibold text-[#26324f]">Property document storage</h2>
+              <p className="text-sm text-[#7280ad]">PDFs and other files attached to work orders for this address.</p>
+            </div>
+          </div>
+          <div className="mt-4 space-y-2">
+            {data.documents.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-[#e5dcff] bg-white/80 px-4 py-6 text-center text-sm text-[#7280ad]">No property-level documents yet.</p>
+            ) : (
+              data.documents.map((doc) => (
+                <a
+                  key={doc.id}
+                  href={doc.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between gap-2 rounded-2xl border border-[#ece5ff] bg-white/90 px-4 py-3 text-sm text-[#26324f] transition hover:border-[#d0c0ff] hover:bg-[#faf8ff]"
+                >
+                  <span className="font-medium break-all">{doc.category.replaceAll("_", " ")}</span>
+                  <span className="shrink-0 text-xs text-[#7280ad]">WO {doc.workOrderNumber || doc.workOrderId.slice(-6)}</span>
+                </a>
+              ))
+            )}
+          </div>
+        </section>
+        <section className="rounded-[28px] border border-[#e4ddff] bg-[linear-gradient(180deg,#ffffff_0%,#f9f6ff_100%)] p-6 shadow-[0_12px_30px_rgba(196,186,255,0.1)]">
+          <div className="flex items-center gap-3">
+            <MessageSquare className="h-6 w-6 text-[#cb5aa2]" />
+            <div>
+              <h2 className="text-lg font-semibold text-[#26324f]">Property notes</h2>
+              <p className="text-sm text-[#7280ad]">Recent legacy comments and thread messages on work orders for this address.</p>
+            </div>
+          </div>
+          <div className="mt-4 max-h-[360px] space-y-3 overflow-y-auto pr-1">
+            {data.notes.length === 0 ? (
+              <p className="text-sm text-[#7280ad]">No notes loaded yet (save activity on your work orders to populate this list).</p>
+            ) : (
+              data.notes.map((note) => (
+                <div key={note.id} className="rounded-2xl border border-[#f0e8ff] bg-white/90 p-3">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#8b92a8]">
+                    <span className="rounded-full bg-[#f4f0ff] px-2 py-0.5 font-semibold text-[#7d58df]">{note.source}</span>
+                    <span>{formatDateTime(note.at)}</span>
+                    <span>·</span>
+                    <span className="font-medium text-[#4d5c80]">{note.author}</span>
+                    <span>·</span>
+                    <Link href={`/dashboard/admin/work-orders/${note.workOrderId}`} className="text-[#745ae0] hover:underline">
+                      {note.workOrderNumber || "Open WO"}
+                    </Link>
+                  </div>
+                  <p className="mt-2 text-sm text-[#4d5c80] line-clamp-4">{note.body}</p>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </div>

@@ -1149,7 +1149,7 @@ export function MessageSupportCenter({
   };
 
   return (
-    <main className={cn("fixed inset-0 z-50 flex overflow-hidden bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] lg:bg-transparent", viewportClassName)}>
+    <main className={cn("fixed inset-0 z-[180] flex overflow-hidden bg-[linear-gradient(180deg,#fffefe_0%,#f8f4ff_52%,#eef4ff_100%)] lg:bg-transparent", viewportClassName)}>
       {notice ? (
         <div className="absolute left-1/2 top-6 z-[60] -translate-x-1/2 animate-in fade-in slide-in-from-top-4 rounded-full border border-sky-200 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-900 shadow-[0_10px_24px_-10px_rgba(14,165,233,0.3)]">
           {notice}
@@ -1157,7 +1157,7 @@ export function MessageSupportCenter({
       ) : null}
 
       {profileEditorOpen ? (
-        <div className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
+        <div className="absolute inset-0 z-[260] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-[2rem] border border-[#e3dcff] bg-white p-6 shadow-[0_24px_70px_rgba(148,163,184,0.28)]">
             <div className="flex items-start justify-between gap-4">
               <div>

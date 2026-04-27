@@ -4696,7 +4696,7 @@ function handleKeyDown(
                           </div>
                         )}
                         {showTaskPopover && (
-                          <div className="absolute bottom-full left-0 mb-3 w-[22rem] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-50 animate-in zoom-in-95">
+                          <div className="absolute bottom-full left-0 z-[240] mb-3 w-[22rem] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl animate-in zoom-in-95">
                              <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
                                 <h4 className="text-sm font-bold text-slate-800">Create Task</h4>
                                 <button type="button" onClick={() => setShowTaskPopover(false)} className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition"><X className="h-4 w-4" /></button>
@@ -4742,7 +4742,7 @@ function handleKeyDown(
                         )}
                         <div className="mx-auto w-full max-w-[1080px]">
 {mentionTarget === "main" && mentionQuery !== null && mentionSuggestions.length > 0 && (
-                          <div className="absolute bottom-full left-4 mb-2 w-64 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
+                          <div className="absolute bottom-full left-4 z-[250] mb-2 w-64 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
                             {mentionSuggestions.map((suggestion, i) => (
                               <button
                                 key={suggestion.id}
@@ -4986,7 +4986,7 @@ onClick={() => {
                                 <Bold className="h-4 w-4" />
                               </button>
                               {showComposeFormatPopover && (
-                                <div className="absolute bottom-full right-0 z-[80] mb-2 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                            <div className="absolute bottom-full right-0 z-[230] mb-2 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                                   <button type="button" onMouseDown={(e) => e.preventDefault()} onMouseUp={(e) => e.preventDefault()} onClick={() => { applyFormat({ before: "**", after: "**" }, composeBody, setComposeBody, composerRef); setShowComposeFormatPopover(false); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"><Bold className="h-4 w-4" /> Bold</button>
                                   <button type="button" onMouseDown={(e) => e.preventDefault()} onMouseUp={(e) => e.preventDefault()} onClick={() => { applyFormat({ before: "\n- ", after: "" }, composeBody, setComposeBody, composerRef); setShowComposeFormatPopover(false); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"><ListChecks className="h-4 w-4" /> Bullet list</button>
                                   <button type="button" onMouseDown={(e) => e.preventDefault()} onMouseUp={(e) => e.preventDefault()} onClick={() => { openMentionPicker("main", composeBody, setComposeBody, composerRef); setShowComposeFormatPopover(false); }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"><AtSign className="h-4 w-4" /> Mention</button>
@@ -4996,7 +4996,7 @@ onClick={() => {
                             <div className="relative">
                               <button type="button" onClick={() => setShowEmojiPicker(showEmojiPicker === "main" ? null : "main")} className="rounded-full p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600" title="Add Emoji"><SmilePlus className="h-4 w-4" /></button>
                               {showEmojiPicker === "main" && (
-                                <div className="absolute bottom-full right-0 z-[80] mb-2 flex w-52 flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                            <div className="absolute bottom-full right-0 z-[230] mb-2 flex w-52 flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                                   {EMOJI_LIST.map((em) => (
                                     <button key={em} onClick={() => { insertAtCursor(em, setComposeBody, composeBody, composerRef); setShowEmojiPicker(null); }} className="rounded-xl p-2 text-lg transition hover:bg-slate-100">{em}</button>
                                   ))}
@@ -5024,7 +5024,7 @@ onClick={() => {
                                 e.target.value = "";
                               }} />
                               {showComposeAttachmentPopover && (
-                                <div className="absolute bottom-full right-0 z-[80] mb-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+                            <div className="absolute bottom-full right-0 z-[230] mb-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
                                   <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">This device</p>
                                     <p className="mt-1 text-xs text-slate-500">Upload a local photo, PDF, spreadsheet, voice note, or other file.</p>
@@ -5064,7 +5064,7 @@ onClick={() => {
                                 <Clock3 className="h-4 w-4" />
                               </button>
                               {showComposeExpiryPopover && (
-                                <div className="absolute bottom-full right-0 z-[80] mb-2 w-36 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                            <div className="absolute bottom-full right-0 z-[230] mb-2 w-36 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                                   <select value={messageExpiryHours} onChange={(e) => setMessageExpiryHours(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-violet-300">
                                     <option value="0">Keep forever</option>
                                     <option value="1">Delete in 1h</option>
@@ -5089,7 +5089,7 @@ onClick={() => {
                                 <ChevronDown className="h-4 w-4" />
                               </button>
                               {showComposeMorePopover && (
-                                <div className="absolute bottom-full right-0 z-[80] mb-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                            <div className="absolute bottom-full right-0 z-[230] mb-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                                   <button type="button" onClick={() => { setShowTaskPopover(!showTaskPopover); setShowComposeMorePopover(false); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-700">
                                     <CheckSquare className="h-4 w-4" /> Create task
                                   </button>
@@ -5308,7 +5308,7 @@ onClick={() => {
                           </div>
                         )}
 {mentionTarget === "thread" && mentionQuery !== null && mentionSuggestions.length > 0 && (
-                          <div className="absolute bottom-full left-4 mb-2 w-64 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
+                            <div className="absolute bottom-full left-4 z-[250] mb-2 w-64 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
                             {mentionSuggestions.map((suggestion, i) => (
                               <button
                                 key={suggestion.id}
@@ -5447,7 +5447,7 @@ onKeyDown={(e) => handleKeyDown(e, "thread", threadReplyBody, setThreadReplyBody
                              <div className="relative">
                                <button type="button" onClick={() => setShowCloudPopover(showCloudPopover === "thread" ? null : "thread")} className="p-1.5 hover:bg-slate-50 hover:text-sky-600 rounded-full transition" title="Attach from cloud"><FolderOpen className="h-3.5 w-3.5" /></button>
                                {showCloudPopover === "thread" && (
-                                 <div className="absolute bottom-full right-0 mb-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl z-[60]">
+                                <div className="absolute bottom-full right-0 z-[230] mb-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Cloud integration</p>
                                    <div className="mt-3 space-y-2">
                                      <select value={cloudProvider} onChange={(e) => setCloudProvider(e.target.value as CloudAttachmentDraft["provider"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400">
@@ -5467,7 +5467,7 @@ onKeyDown={(e) => handleKeyDown(e, "thread", threadReplyBody, setThreadReplyBody
                              <div className="relative">
                                 <button type="button" onClick={() => setShowEmojiPicker(showEmojiPicker === "thread" ? null : "thread")} className="p-1.5 hover:bg-amber-50 hover:text-amber-600 rounded-full transition" title="Add Emoji"><SmilePlus className="h-3.5 w-3.5" /></button>
                                 {showEmojiPicker === "thread" && (
-                                   <div className="absolute bottom-full right-0 mb-2 w-52 bg-white border border-slate-200 shadow-xl rounded-2xl p-2 flex flex-wrap gap-2 z-[60]">
+                                <div className="absolute bottom-full right-0 z-[230] mb-2 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl flex flex-wrap gap-2">
                                       {EMOJI_LIST.map(em => (
                                          <button key={em} onClick={() => { insertAtCursor(em, setThreadReplyBody, threadReplyBody, threadComposerRef); setShowEmojiPicker(null); }} className="hover:bg-slate-100 p-2 rounded-xl text-lg transition">{em}</button>
                                       ))}
@@ -5490,7 +5490,7 @@ onKeyDown={(e) => handleKeyDown(e, "thread", threadReplyBody, setThreadReplyBody
 
           {/* Settings Modal (Pop up) */}
           {showChannelSettings && (
-            <div className="fixed inset-0 z-[70] bg-slate-950/40 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[260] bg-slate-950/40 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
                <div className="w-full max-w-lg bg-white rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
                      <h3 className="font-bold text-lg text-slate-900">{thread.thread.isDirectMessage ? "Chat settings" : "Channel settings"}</h3>

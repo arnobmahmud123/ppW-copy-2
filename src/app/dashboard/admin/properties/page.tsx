@@ -8,6 +8,7 @@ import {
   Camera,
   Clock3,
   FileText,
+  Globe,
   Loader2,
   MapPin,
   Search,
@@ -34,6 +35,8 @@ export default function AdminPropertiesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [importingStreet, setImportingStreet] = useState(false)
   const [importMessage, setImportMessage] = useState("")
+  const [scrapingPhotos, setScrapingPhotos] = useState(false)
+  const [scrapeMessage, setScrapeMessage] = useState("")
 
   const loadProperties = useCallback(async (opts?: { signal?: AbortSignal; silent?: boolean }) => {
     try {
@@ -152,7 +155,9 @@ export default function AdminPropertiesPage() {
               two additional angles for the gallery. Requires{" "}
               <code className="rounded bg-white/90 px-1.5 py-0.5 text-xs text-[#4a5682]">GOOGLE_MAPS_API_KEY</code>{" "}
               with Geocoding + Street View Static API enabled. Third-party listing sites such as Zillow do not provide a
-              licensed bulk photo API.
+              licensed bulk photo API. For listing-quality shots without any Maps key, open a property and use{" "}
+              <strong className="font-semibold text-[#26324f]">Import listing-style photos</strong> there: paste direct
+              image URLs and the server saves them as before + gallery attachments.
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
@@ -250,6 +255,124 @@ export default function AdminPropertiesPage() {
         {importMessage ? (
           <p className="mt-4 text-sm text-[#4a5682]">
             {importMessage}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="rounded-[28px] border border-[#c9e2d5] bg-[linear-gradient(135deg,#ffffff_0%,#edfaf3_45%,#e8f7ff_100%)] p-5 shadow-[0_16px_36px_rgba(140,210,170,0.14)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#c4eed7] bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#3da06e]">
+              <Globe className="h-3.5 w-3.5" />
+              Auto-scrape property photos
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-[#5f6f91]">
+              Automatically search <strong className="font-semibold text-[#26324f]">Bing Images</strong> and{" "}
+              <strong className="font-semibold text-[#26324f]">Zillow</strong> for each property address and download
+              real house photos — <strong className="font-semibold text-[#26324f]">no API keys required</strong>.
+              The first image becomes{" "}
+              <span className="whitespace-nowrap font-medium text-[#26324f]">PHOTO_BEFORE</span> (front of house)
+              and additional images become gallery{" "}
+              <span className="whitespace-nowrap font-medium text-[#26324f]">PHOTO_DURING</span>.
+              Properties that already have a before photo are skipped by default.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              disabled={scrapingPhotos}
+              onClick={async () => {
+                setScrapingPhotos(true)
+                setScrapeMessage("")
+                try {
+                  const res = await fetch("/api/admin/properties/auto-scrape-photos", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      dryRun: true,
+                      limit: 500,
+                      offset: 0,
+                      skipExistingBefore: true,
+                    }),
+                  })
+                  const data = await res.json().catch(() => ({}))
+                  if (!res.ok) throw new Error(data.error || "Dry run failed")
+                  setScrapeMessage(
+                    `Dry run: ${data.wouldProcess ?? 0} properties would receive scraped photos, ${data.wouldSkip ?? 0} skipped (already have before photos). Total distinct properties: ${data.totalProperties ?? "—"}.`
+                  )
+                } catch (e) {
+                  setScrapeMessage(e instanceof Error ? e.message : "Dry run failed")
+                } finally {
+                  setScrapingPhotos(false)
+                }
+              }}
+              className="rounded-[18px] border border-[#b8e0ca] bg-white px-4 py-2.5 text-sm font-semibold text-[#3d7a5a] shadow-[0_8px_20px_rgba(140,210,170,0.15)] transition hover:bg-[#f5fff9] disabled:opacity-50"
+            >
+              {scrapingPhotos ? "Working…" : "Dry run"}
+            </button>
+            <button
+              type="button"
+              disabled={scrapingPhotos}
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    "Auto-scrape property photos from Bing Images and Zillow for up to 30 properties at a time (properties without PHOTO_BEFORE). This may take a few minutes. Continue?"
+                  )
+                ) {
+                  return
+                }
+                setScrapingPhotos(true)
+                setScrapeMessage("")
+                try {
+                  let offset = 0
+                  const limit = 10
+                  let totalImages = 0
+                  let batches = 0
+                  let reportedTotal = 0
+                  while (true) {
+                    setScrapeMessage(`Scraping batch ${batches + 1} (offset ${offset})… ${totalImages} images so far.`)
+                    const res = await fetch("/api/admin/properties/auto-scrape-photos", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        dryRun: false,
+                        limit,
+                        offset,
+                        skipExistingBefore: true,
+                        throttleMs: 2000,
+                      }),
+                    })
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok) throw new Error(data.error || "Scrape failed")
+                    reportedTotal = data.totalProperties ?? reportedTotal
+                    totalImages += data.imagesCreated ?? 0
+                    batches += 1
+                    const batchSize = data.batchSize ?? 0
+                    if (batchSize === 0) break
+                    offset += limit
+                    if (batchSize < limit) break
+                    if (reportedTotal > 0 && offset >= reportedTotal) break
+                    if (batches > 50) break
+                  }
+                  setScrapeMessage(
+                    `Scraping finished in ${batches} batch(es). Images downloaded: ${totalImages}. Run again to cover remaining properties.`
+                  )
+                  await loadProperties({ silent: true })
+                } catch (e) {
+                  setScrapeMessage(e instanceof Error ? e.message : "Scrape failed")
+                } finally {
+                  setScrapingPhotos(false)
+                }
+              }}
+              className="rounded-[18px] border border-[#7fd4a3] bg-[linear-gradient(135deg,#2f9b67_0%,#2a7fbf_100%)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(47,155,103,0.35)] transition hover:brightness-105 disabled:opacity-50"
+            >
+              {scrapingPhotos ? "Scraping…" : "Auto-scrape photos (batch)"}
+            </button>
+          </div>
+        </div>
+        {scrapeMessage ? (
+          <p className="mt-4 text-sm text-[#3d6b54]">
+            {scrapeMessage}
           </p>
         ) : null}
       </div>

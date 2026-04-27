@@ -12,7 +12,10 @@ import {
   Clock3,
   DollarSign,
   FileText,
+  Globe,
+  ImagePlus,
   KeyRound,
+  Loader2,
   MapPin,
   MessageSquare,
   Sparkles,
@@ -62,6 +65,13 @@ export default function AdminPropertyDetailPage() {
   const [data, setData] = useState<PropertyDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [listingUrlText, setListingUrlText] = useState("")
+  const [listingGalleryOnly, setListingGalleryOnly] = useState(false)
+  const [listingSkipIfBefore, setListingSkipIfBefore] = useState(false)
+  const [listingImporting, setListingImporting] = useState(false)
+  const [listingImportMessage, setListingImportMessage] = useState("")
+  const [autoScraping, setAutoScraping] = useState(false)
+  const [autoScrapeMessage, setAutoScrapeMessage] = useState("")
 
   useEffect(() => {
     if (!propertyKey) return
@@ -97,6 +107,14 @@ export default function AdminPropertyDetailPage() {
     void loadProperty()
     return () => controller.abort()
   }, [propertyKey])
+
+  const reloadProperty = async () => {
+    if (!propertyKey) return
+    const response = await fetch(`/api/admin/properties/${propertyKey}`, { cache: "no-store" })
+    if (!response.ok) return
+    const payload = await response.json()
+    setData(payload)
+  }
 
   const headline = useMemo(() => {
     if (!data) return ""
@@ -227,6 +245,155 @@ export default function AdminPropertyDetailPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-8 rounded-[22px] border border-[#dcd5ff] bg-[linear-gradient(135deg,#ffffff_0%,#f4f0ff_50%,#eef6ff_100%)] p-5 shadow-[0_12px_28px_rgba(196,186,255,0.12)]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_6px_16px_rgba(180,167,239,0.2)]">
+                  <ImagePlus className="h-5 w-5 text-[#7c63ff]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#26324f]">Import listing-style photos (no Maps API)</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-[#7280ad]">
+                    Open Zillow, Google Images, or the MLS in your browser, copy direct image links (or upload elsewhere and paste CDN URLs).
+                    The first URL becomes <span className="font-medium text-[#4d4a6e]">PHOTO_BEFORE</span> when this property has no front photo yet;
+                    additional lines become gallery <span className="font-medium text-[#4d4a6e]">PHOTO_DURING</span>. Many listing URLs expire quickly—downloading
+                    to your own host first is most reliable.
+                  </p>
+                </div>
+              </div>
+              <textarea
+                value={listingUrlText}
+                onChange={(e) => setListingUrlText(e.target.value)}
+                placeholder={"https://…\nhttps://…"}
+                rows={5}
+                className="mt-4 w-full rounded-[18px] border border-[#e8e1ff] bg-white/95 px-4 py-3 text-sm text-[#26324f] outline-none ring-[#c9b8ff] placeholder:text-[#9aa8cc] focus:ring-2"
+              />
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[#5f6f91]">
+                  <input
+                    type="checkbox"
+                    checked={listingGalleryOnly}
+                    onChange={(e) => setListingGalleryOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-[#cfc4ff] text-[#7c63ff]"
+                  />
+                  Attach all as gallery only (PHOTO_DURING)
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[#5f6f91]">
+                  <input
+                    type="checkbox"
+                    checked={listingSkipIfBefore}
+                    onChange={(e) => setListingSkipIfBefore(e.target.checked)}
+                    className="h-4 w-4 rounded border-[#cfc4ff] text-[#7c63ff]"
+                  />
+                  Skip import if a before photo already exists
+                </label>
+              </div>
+              <button
+                type="button"
+                disabled={listingImporting}
+                onClick={async () => {
+                  const lines = listingUrlText
+                    .split(/\r?\n/)
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                  if (lines.length === 0) {
+                    setListingImportMessage("Add at least one image URL.")
+                    return
+                  }
+                  setListingImporting(true)
+                  setListingImportMessage("")
+                  try {
+                    const res = await fetch("/api/admin/properties/import-listing-photo-urls", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        propertyKey: data.property.propertyKey,
+                        imageUrls: lines,
+                        galleryOnly: listingGalleryOnly,
+                        skipIfBeforeExists: listingSkipIfBefore,
+                      }),
+                    })
+                    const payload = await res.json().catch(() => ({}))
+                    if (!res.ok) throw new Error(payload.error || "Import failed")
+                    const r0 = Array.isArray(payload.results) ? payload.results[0] : null
+                    const errs = r0?.errors?.length ? ` Errors: ${r0.errors.join(" ")}` : ""
+                    setListingImportMessage(
+                      `Saved ${payload.totalCreated ?? 0} image(s) on work order ${r0?.workOrderId ?? ""}.${errs}`
+                    )
+                    setListingUrlText("")
+                    await reloadProperty()
+                  } catch (e) {
+                    setListingImportMessage(e instanceof Error ? e.message : "Import failed")
+                  } finally {
+                    setListingImporting(false)
+                  }
+                }}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-[18px] border border-[#c9b8ff] bg-[linear-gradient(135deg,#7c63ff_0%,#5b8cff_100%)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(100,80,230,0.3)] transition hover:brightness-105 disabled:opacity-50"
+              >
+                {listingImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                {listingImporting ? "Downloading…" : "Import from URLs"}
+              </button>
+              {listingImportMessage ? (
+                <p className="mt-3 text-sm text-[#4a5682]">{listingImportMessage}</p>
+              ) : null}
+            </div>
+
+            <div className="mt-5 rounded-[22px] border border-[#b5dfc7] bg-[linear-gradient(135deg,#ffffff_0%,#edfaf3_50%,#e8f7ff_100%)] p-5 shadow-[0_12px_28px_rgba(140,210,170,0.12)]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_6px_16px_rgba(100,190,140,0.2)]">
+                  <Globe className="h-5 w-5 text-[#2f9b67]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#26324f]">Auto-find photos from web</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-[#7280ad]">
+                    Automatically search <span className="font-medium text-[#26324f]">Bing Images</span> and{" "}
+                    <span className="font-medium text-[#26324f]">Zillow</span> for this property address and download
+                    real house photos. No API keys needed. The first image becomes{" "}
+                    <span className="font-medium text-[#4d4a6e]">PHOTO_BEFORE</span> (front of house) and additional
+                    photos become gallery <span className="font-medium text-[#4d4a6e]">PHOTO_DURING</span>.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={autoScraping}
+                onClick={async () => {
+                  setAutoScraping(true)
+                  setAutoScrapeMessage("")
+                  try {
+                    const res = await fetch("/api/admin/properties/auto-scrape-photos", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        propertyKey: data.property.propertyKey,
+                        dryRun: false,
+                        skipExistingBefore: false,
+                        throttleMs: 1500,
+                      }),
+                    })
+                    const payload = await res.json().catch(() => ({}))
+                    if (!res.ok) throw new Error(payload.error || "Scrape failed")
+                    const r0 = Array.isArray(payload.results) ? payload.results[0] : null
+                    const errs = r0?.errors?.length ? ` Issues: ${r0.errors.slice(0, 3).join("; ")}` : ""
+                    setAutoScrapeMessage(
+                      `Downloaded ${payload.imagesCreated ?? 0} photo(s) from ${r0?.source ?? "web"} for this property.${errs}`
+                    )
+                    await reloadProperty()
+                  } catch (e) {
+                    setAutoScrapeMessage(e instanceof Error ? e.message : "Scrape failed")
+                  } finally {
+                    setAutoScraping(false)
+                  }
+                }}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-[18px] border border-[#7fd4a3] bg-[linear-gradient(135deg,#2f9b67_0%,#2a7fbf_100%)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(47,155,103,0.3)] transition hover:brightness-105 disabled:opacity-50"
+              >
+                {autoScraping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                {autoScraping ? "Searching & downloading…" : "Auto-find photos from web"}
+              </button>
+              {autoScrapeMessage ? (
+                <p className="mt-3 text-sm text-[#3d6b54]">{autoScrapeMessage}</p>
+              ) : null}
             </div>
           </div>
         </section>
